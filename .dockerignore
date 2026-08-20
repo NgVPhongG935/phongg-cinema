@@ -1,0 +1,9 @@
+target/
+node_modules/
+frontend/
+mobile/
+.git/
+.mvn/
+*.exe
+*.log
+uploads/
