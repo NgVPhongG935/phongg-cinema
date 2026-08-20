@@ -19,7 +19,7 @@ function chuanHoaApiBaseUrl(raw) {
 
 let apiBaseUrl = '/api/v1'
 try {
-  apiBaseUrl = chuanHoaApiBaseUrl(import.meta.env.VITE_API_URL)
+  apiBaseUrl = chuanHoaApiBaseUrl(import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL)
 } catch (loi) {
   console.warn('[apiClient] Không chuẩn hóa được baseURL, dùng /api/v1', loi)
   apiBaseUrl = '/api/v1'
