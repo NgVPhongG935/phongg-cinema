@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * Sửa poster chết (TMDB 404 / URL rỗng) bằng tìm lại trên TMDB.
  */
-@Component
+// @Component
 @Order(100)
 @RequiredArgsConstructor
 public class PosterRepairRunner implements ApplicationRunner {

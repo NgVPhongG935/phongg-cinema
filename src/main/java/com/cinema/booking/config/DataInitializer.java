@@ -54,7 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-@Component
+// @Component
 public class DataInitializer implements CommandLineRunner {
     private static final Logger nhatKy = LoggerFactory.getLogger(DataInitializer.class);
     private static final BigDecimal GIA_CO_BAN = BigDecimal.valueOf(90000);
