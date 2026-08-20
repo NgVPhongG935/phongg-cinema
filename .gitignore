@@ -1,0 +1,19 @@
+# Local secrets — never commit
+mail.local.cmd
+gemini.local.cmd
+tmdb.local.cmd
+
+# Vendor clones
+vendor/
+
+# Local database storage
+data/
+.mongo-data/
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

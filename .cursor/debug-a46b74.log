@@ -1,0 +1,22 @@
+{"sessionId":"a46b74","location":"ManageTicketsPage:taiCho","message":"admin_pending","data":{"count":0,"statuses":[],"methods":[]},"timestamp":1785550236906,"hypothesisId":"H2"}
+{"sessionId":"a46b74","location":"ManageTicketsPage:taiCho","message":"admin_pending","data":{"count":0,"statuses":[],"methods":[]},"timestamp":1785550245580,"hypothesisId":"H2"}
+{"sessionId":"a46b74","location":"ManageTicketsPage:taiCho","message":"admin_pending","data":{"count":0,"statuses":[],"methods":[]},"timestamp":1785550248015,"hypothesisId":"H2"}
+{"sessionId":"a46b74","location":"ManageTicketsPage:taiCho","message":"admin_pending","data":{"count":0,"statuses":[],"methods":[]},"timestamp":1785550250737,"hypothesisId":"H2"}
+{"sessionId":"a46b74","location":"ManageTicketsPage:taiCho","message":"admin_pending","data":{"count":0,"statuses":[],"methods":[]},"timestamp":1785550253123,"hypothesisId":"H2"}
+{"sessionId":"a46b74","location":"ManageTicketsPage:taiCho","message":"admin_pending","data":{"count":0,"statuses":[],"methods":[]},"timestamp":1785550255499,"hypothesisId":"H2"}
+{"sessionId":"a46b74","location":"ManageTicketsPage:taiCho","message":"admin_pending","data":{"count":0,"statuses":[],"methods":[]},"timestamp":1785550257880,"hypothesisId":"H2"}
+{"sessionId":"a46b74","location":"ManageTicketsPage:taiCho","message":"admin_pending","data":{"count":0,"statuses":[],"methods":[]},"timestamp":1785550260436,"hypothesisId":"H2"}
+{"sessionId":"a46b74","location":"ManageTicketsPage:taiCho","message":"admin_pending","data":{"count":0,"statuses":[],"methods":[]},"timestamp":1785550262544,"hypothesisId":"H2"}
+{"sessionId":"a46b74","hypothesisId":"C","location":"AdminLayout.jsx:route","message":"admin route change","data":{"pathname":"/admin/movies","start":704653.9000000004},"timestamp":1785818382428}
+{"sessionId":"a46b74","hypothesisId":"D","location":"ManageMoviesPage.jsx:fetch-start","message":"movies fetch start","data":{"tuKhoaTim":"","trangThai":"SHOWING"},"timestamp":1785818453472}
+{"sessionId":"a46b74","hypothesisId":"D","location":"ManageMoviesPage.jsx:fetch-end","message":"movies fetch end","data":{"count":100,"fetchMs":202.7000000011176},"timestamp":1785818453675}
+{"sessionId":"a46b74","hypothesisId":"C","location":"AdminLayout.jsx:route-paint","message":"route paint after 2 rAF","data":{"pathname":"/admin/movies","paintMs":151368.09999999963},"timestamp":1785818533796}
+{"sessionId":"a46b74","hypothesisId":"D","location":"AdminLayout.jsx:route-change","message":"pathname changed","data":{"pathname":"/admin/movies"},"timestamp":1785819475189}
+{"sessionId":"a46b74","hypothesisId":"A","location":"AdminLayout.jsx:sidebar-pointerdown","message":"pointer on sidebar","data":{"tag":"A","className":"admin-nav-link admin-nav-link-con group ","overlays":1,"pathname":"/admin/movies","menuDangMo":{"phim-suat-chieu":true}},"timestamp":1785819499931}
+{"sessionId":"a46b74","hypothesisId":"D","location":"AdminLayout.jsx:MucMenuCon:click","message":"submenu nav click","data":{"to":"/admin/showtimes","pathname":"/admin/movies","overlays":1},"timestamp":1785819500003}
+{"sessionId":"a46b74","hypothesisId":"D","location":"AdminLayout.jsx:route-change","message":"pathname changed","data":{"pathname":"/admin/showtimes"},"timestamp":1785819500042}
+{"sessionId":"a46b74","hypothesisId":"D","location":"AdminLayout.jsx:route-change","message":"pathname changed","data":{"pathname":"/admin/showtimes"},"timestamp":1785819522677}
+{"sessionId":"a46b74","hypothesisId":"D","location":"AdminLayout.jsx:route-change","message":"pathname changed","data":{"pathname":"/admin/showtimes"},"timestamp":1785819522681}
+{"sessionId":"a46b74","hypothesisId":"A","location":"AdminLayout.jsx:sidebar-pointerdown","message":"pointer on sidebar","data":{"tag":"SPAN","className":"flex-1 truncate","overlays":0,"pathname":"/admin/showtimes","menuDangMo":{"phim-suat-chieu":true}},"timestamp":1785819523685}
+{"sessionId":"a46b74","hypothesisId":"D","location":"AdminLayout.jsx:MucMenuCon:click","message":"submenu nav click","data":{"to":"/admin/movies","pathname":"/admin/showtimes","overlays":0},"timestamp":1785819523827}
+{"sessionId":"a46b74","hypothesisId":"D","location":"AdminLayout.jsx:route-change","message":"pathname changed","data":{"pathname":"/admin/movies"},"timestamp":1785819523858}

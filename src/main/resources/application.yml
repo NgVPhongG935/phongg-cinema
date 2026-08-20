@@ -1,0 +1,77 @@
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: "7.0.14"
+        database-dir: "./data/db"
+
+spring:
+  application:
+    name: cinema-booking
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  data:
+    mongodb:
+      database: cinema-db
+      auto-index-creation: true
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            trust: smtp.gmail.com
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+server:
+  address: 0.0.0.0
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  api-keys: ${GEMINI_API_KEYS:}
+  model: ${GEMINI_MODEL:gemini-1.5-flash}
+  enabled: ${GEMINI_ENABLED:false}
+tmdb:
+  api-key: ${TMDB_API_KEY:}
+  enabled: ${TMDB_ENABLED:false}
+jwt:
+  secret: PhongGCinemaSecretKey2026PhongGCinemaSecretKey2026
+  thoiGianHetHanMs: 86400000
+google:
+  client-id: 983953985440-pd6ook82m21oq5m8c1pt99ort1qnp29l.apps.googleusercontent.com
+
+app:
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
+  backend-url: ${APP_BACKEND_URL:http://localhost:8080}
+  upload-dir: ${APP_UPLOAD_DIR:uploads}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:PhongG Cinema <noreply@phonggcinema.local>}
+  movie-ai:
+    enabled: ${MOVIE_AI_ENABLED:false}
+    searxng-url: ${SEARXNG_URL:http://127.0.0.1:8888}
+    python: ${MOVIE_AI_PYTHON:python}
+
+payment:
+  vnpay:
+    tmn-code: ${VNPAY_TMN_CODE:}
+    hash-secret: ${VNPAY_HASH_SECRET:}
+    pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpay.vn/paymentv2/vpcpay.html}
+    return-url: ${VNPAY_RETURN_URL:http://localhost:8080/api/v1/payments/vnpay/return}
+    ipn-url: ${VNPAY_IPN_URL:http://localhost:8080/api/v1/payments/vnpay/ipn}
+  momo:
+    partner-code: ${MOMO_PARTNER_CODE:}
+    access-key: ${MOMO_ACCESS_KEY:}
+    secret-key: ${MOMO_SECRET_KEY:}
+    endpoint: ${MOMO_ENDPOINT:https://test-payment.momo.vn/v2/gateway/api/create}
+    return-url: ${MOMO_RETURN_URL:http://localhost:8080/api/v1/payments/momo/return}
+    notify-url: ${MOMO_NOTIFY_URL:http://localhost:8080/api/v1/payments/momo/ipn}

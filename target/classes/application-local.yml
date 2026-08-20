@@ -1,0 +1,14 @@
+# Profile local: Mongo nhúng lưu trữ cố định vào ./data/db (Persistent Storage)
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: "7.0.14"
+        database-dir: "./data/db"
+
+spring:
+  data:
+    mongodb:
+      database: cinema-db
+      auto-index-creation: true
+

@@ -1,0 +1,652 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cinema-950 text-slate-100 antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  select,
+  select option,
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  textarea {
+    color: #0f172a;
+    background-color: #ffffff;
+  }
+
+  select option:checked,
+  select option:hover {
+    color: #0f172a;
+    background-color: #e2e8f0;
+  }
+
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='time'] {
+    color-scheme: light;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+  }
+}
+
+@layer components {
+  .nut-chinh {
+    @apply rounded-xl bg-cinema-500 px-5 py-2.5 font-semibold text-white shadow-lg shadow-cinema-500/25 transition hover:scale-[1.02] hover:bg-cinema-600 hover:shadow-cinema-500/40 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100;
+  }
+
+  .nut-neon-cyber {
+    @apply shadow-[0_0_20px_rgba(131,100,255,0.6)] animate-neon-pulse-soft;
+  }
+
+  .nut-glass-trailer {
+    @apply rounded-xl border border-[#8364ff]/60 bg-white/10 px-5 py-2.5 font-semibold text-white backdrop-blur-md transition duration-300 hover:border-fuchsia-400/80 hover:bg-[#8364ff]/20 hover:shadow-[0_0_24px_rgba(131,100,255,0.45)] active:scale-[0.98];
+  }
+
+  .banner-cyber {
+    @apply shadow-[inset_0_-1px_0_rgba(131,100,255,0.15)];
+  }
+
+  .poster-cyber-stack {
+    @apply relative flex flex-col items-center;
+  }
+
+  .poster-cyber-tilt {
+    transform: perspective(900px) rotateY(8deg) rotateX(2deg);
+    @apply transition-all duration-500;
+  }
+
+  .poster-cyber-stack:hover .poster-cyber-tilt {
+    transform: perspective(900px) rotateY(-2deg) rotateX(-2deg) rotate(2deg) scale(1.05);
+  }
+
+  .poster-cyber-reflection {
+    @apply mt-2 h-10 w-56 rounded-b-3xl opacity-40;
+    transform: scaleY(-1);
+    background-size: cover;
+    background-position: center bottom;
+    filter: blur(6px);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 100%);
+  }
+
+  .tieu-de-cyber {
+    @apply drop-shadow-[0_0_20px_rgba(131,100,255,0.25)];
+  }
+
+  .the-kinh {
+    @apply rounded-2xl border border-white/10 bg-white/5 text-slate-100 shadow-lg shadow-black/10 backdrop-blur transition duration-300 hover:border-white/20 hover:shadow-fuchsia-900/10;
+  }
+
+  .admin-modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm;
+  }
+
+  .admin-modal-overlay-content {
+    @apply relative my-auto flex w-full max-h-[90vh] flex-col;
+  }
+
+  .admin-modal-panel {
+    @apply flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-cinema-900 text-slate-100 shadow-2xl shadow-black/60;
+  }
+
+  .admin-modal-header {
+    @apply shrink-0 border-b border-white/10 px-6 py-4;
+  }
+
+  .admin-modal-body {
+    @apply flex-1 overflow-y-auto px-6 py-4 pr-4 scrollbar-thin;
+  }
+
+  .admin-modal-footer {
+    @apply shrink-0 border-t border-white/10 bg-black/20 px-6 py-4;
+  }
+
+  .admin-table-panel {
+    @apply rounded-2xl border border-white/10 bg-white/[0.04] text-slate-100;
+  }
+
+  .o-nhap {
+    @apply w-full rounded-xl border border-white/20 bg-white px-4 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cinema-500 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  select.o-nhap {
+    @apply cursor-pointer bg-white text-slate-900;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(217, 70, 239, 0.5) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-fuchsia-500/50;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .admin-shell {
+    @apply bg-[#07070f];
+    background-image:
+      radial-gradient(circle at 10% 10%, rgba(131, 100, 255, 0.12), transparent 30%),
+      radial-gradient(circle at 90% 20%, rgba(217, 70, 239, 0.08), transparent 28%),
+      radial-gradient(circle at 50% 100%, rgba(34, 211, 238, 0.06), transparent 35%);
+  }
+
+  .admin-sidebar {
+    @apply bg-[#0a0a14]/95 backdrop-blur-2xl shadow-[4px_0_60px_rgba(0,0,0,0.45)];
+  }
+
+  .admin-sidebar-brand {
+    @apply pb-1;
+  }
+
+  .admin-user-card {
+    @apply rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent p-3.5 shadow-inner shadow-black/20;
+  }
+
+  .admin-user-avatar {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-violet-600 text-xs font-black text-white shadow-lg shadow-fuchsia-900/30 ring-2 ring-white/10;
+  }
+
+  .admin-sidebar-nav {
+    @apply flex-1 overflow-y-auto overflow-x-hidden pr-1;
+    max-height: calc(100vh - 280px);
+  }
+
+  @media (min-width: 1024px) {
+    .admin-sidebar-nav {
+      max-height: calc(100vh - 320px);
+    }
+  }
+
+  .admin-sidebar-footer {
+    @apply border-t border-white/[0.06];
+  }
+
+  .admin-topbar {
+    @apply bg-[#07070f]/80;
+  }
+
+  .admin-grid-pattern {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .admin-nav-cum {
+    @apply border border-transparent;
+  }
+
+  .admin-nav-cum-active {
+    @apply border-fuchsia-500/15 bg-white/[0.02];
+  }
+
+  .admin-glass {
+    @apply border border-white/10 bg-white/[0.04] backdrop-blur-sm;
+  }
+
+  .admin-card {
+    @apply rounded-3xl border border-white/10 bg-white/[0.03] shadow-[0_20px_60px_rgba(0,0,0,0.35)];
+  }
+
+  .admin-hero {
+    @apply border border-white/10 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent shadow-[0_25px_80px_rgba(109,74,255,0.12)];
+  }
+
+  .admin-nav-link {
+    @apply relative flex items-center gap-3 rounded-xl border border-transparent px-2.5 py-2.5 text-sm text-slate-400 transition-all duration-200 hover:border-white/10 hover:bg-white/[0.04] hover:text-white;
+  }
+
+  .admin-nav-link-active {
+    @apply border-fuchsia-400/25 bg-gradient-to-r from-fuchsia-600/20 via-violet-600/10 to-transparent font-semibold text-white shadow-[0_4px_24px_rgba(168,85,247,0.15)] ring-1 ring-fuchsia-400/15;
+  }
+
+  .admin-nav-link-active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gradient-to-b from-fuchsia-400 to-violet-500 shadow-[0_0_10px_rgba(232,121,249,0.6)];
+  }
+
+  .admin-nav-link-con {
+    @apply py-2 pl-2.5 text-[13px];
+  }
+
+  .admin-nav-link-con.admin-nav-link-active::before {
+    @apply hidden;
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%];
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.55s ease-out both;
+  }
+
+  .animate-ken-burns {
+    animation: ken-burns 18s ease-in-out infinite alternate;
+  }
+
+  .hieu-ung-loang-sang::after {
+    content: '';
+    @apply pointer-events-none absolute -left-full top-0 h-full w-1/2 skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-0 transition-opacity duration-300;
+  }
+
+  .group:hover .hieu-ung-loang-sang::after {
+    @apply opacity-100;
+    animation: shine-sweep 0.75s ease-out;
+  }
+
+  .nen-dong-orb {
+    @apply absolute rounded-full blur-3xl;
+    animation: float-orb 14s ease-in-out infinite;
+  }
+
+  .nen-dong-orb-1 {
+    @apply -left-24 top-20 h-72 w-72 bg-fuchsia-600/20;
+  }
+
+  .nen-dong-orb-2 {
+    @apply right-0 top-1/3 h-96 w-96 bg-violet-600/15;
+    animation-delay: -4s;
+  }
+
+  .nen-dong-orb-3 {
+    @apply bottom-0 left-1/3 h-80 w-80 bg-cyan-500/10;
+    animation-delay: -8s;
+  }
+
+  /* Html5Qrcode: giảm chói camera khi quét vé */
+  #khung-camera {
+    position: relative;
+  }
+
+  #khung-camera video,
+  .quet-camera-video {
+    width: 100% !important;
+    max-height: 320px;
+    object-fit: cover;
+    border-radius: 0.75rem;
+    filter: brightness(0.82) contrast(1.2) saturate(0.85);
+  }
+
+  #khung-camera > div {
+    width: 100% !important;
+  }
+}
+
+@layer utilities {
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @keyframes ken-burns {
+    from { transform: scale(1) translate(0, 0); }
+    to { transform: scale(1.08) translate(-2%, -1%); }
+  }
+
+  @keyframes shine-sweep {
+    from { left: -100%; }
+    to { left: 150%; }
+  }
+
+  @keyframes float-orb {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(24px, -18px) scale(1.05); }
+    66% { transform: translate(-16px, 12px) scale(0.95); }
+  }
+
+  @keyframes neon-pulse-soft {
+    0%, 100% {
+      box-shadow: 0 0 16px rgba(131, 100, 255, 0.45), 0 4px 14px rgba(131, 100, 255, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 28px rgba(131, 100, 255, 0.75), 0 0 40px rgba(217, 70, 239, 0.25);
+    }
+  }
+
+  .animate-neon-pulse-soft {
+    animation: neon-pulse-soft 2.8s ease-in-out infinite;
+  }
+}
+
+/* In vé phim — chỉ hiện template khi in */
+.print-ticket-root {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+
+  html, body {
+    width: 80mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #khu-in-ve,
+  #khu-in-ve * {
+    visibility: visible;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  #khu-in-ve {
+    display: block !important;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    background: #fff;
+    color: #111;
+    z-index: 99999;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .print-ticket-noi-dung {
+    width: 72mm;
+    margin: 0 auto;
+    padding: 6mm 4mm 8mm;
+    font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+    font-size: 10px;
+    line-height: 1.4;
+    border: 2px solid #111;
+    border-radius: 4px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .print-ticket-header {
+    text-align: center;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 2px dashed #333;
+  }
+
+  .print-ticket-brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .print-ticket-brand-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #111;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .print-ticket-logo {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: #666;
+    margin: 0;
+  }
+
+  .print-ticket-ten-rap {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin: 2px 0 0;
+    line-height: 1.2;
+  }
+
+  .print-ticket-phu {
+    font-size: 9px;
+    color: #444;
+    margin: 2px 0;
+  }
+
+  .print-ticket-ten-phim {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 900;
+    line-height: 1.25;
+    margin: 0 0 10px;
+    padding: 0 4px;
+  }
+
+  .print-ticket-highlight {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding: 8px;
+    background: #f4f4f5;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+
+  .print-ticket-highlight-item {
+    font-size: 9px;
+    color: #555;
+  }
+
+  .print-ticket-highlight-item span {
+    display: block;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 2px;
+  }
+
+  .print-ticket-highlight-item strong {
+    display: block;
+    font-size: 10px;
+    color: #111;
+    font-weight: 800;
+  }
+
+  .print-ticket-ghe {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding-top: 4px;
+    border-top: 1px dashed #bbb;
+  }
+
+  .print-ticket-ghe strong {
+    font-size: 18px;
+    letter-spacing: 0.08em;
+  }
+
+  .print-ticket-section {
+    margin-bottom: 8px;
+  }
+
+  .print-ticket-tieu-de-muc {
+    font-weight: 700;
+    font-size: 10px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 2px;
+  }
+
+  .print-ticket-bang {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+    margin-bottom: 8px;
+  }
+
+  .print-ticket-bang td,
+  .print-ticket-bang th {
+    padding: 2px 0;
+    vertical-align: top;
+  }
+
+  .print-ticket-bang td:first-child {
+    color: #555;
+    width: 38%;
+  }
+
+  .print-ticket-bang-combo th {
+    font-size: 8px;
+    color: #666;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .print-ticket-sl {
+    text-align: center;
+  }
+
+  .print-ticket-tong-combo {
+    margin-top: 2px;
+    font-size: 9px;
+    font-weight: 600;
+  }
+
+  .print-ticket-xac-thuc {
+    text-align: center;
+    margin: 10px 0;
+    padding: 10px 6px;
+    border: 2px solid #111;
+    border-radius: 8px;
+    background: #fff;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .print-ticket-xac-thuc-tieu-de {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+  }
+
+  .print-ticket-qr-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin: 0 auto 6px;
+    width: fit-content;
+  }
+
+  .print-ticket-qr-wrap svg {
+    display: block !important;
+    width: 128px !important;
+    height: 128px !important;
+  }
+
+  .print-ticket-ma-qr {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 800;
+    margin: 4px 0;
+    letter-spacing: 0.02em;
+    word-break: break-all;
+  }
+
+  .print-ticket-ma-ve {
+    font-size: 10px;
+    margin: 2px 0;
+  }
+
+  .print-ticket-huong-dan {
+    font-size: 8px;
+    color: #444;
+    margin: 6px 0 0;
+    line-height: 1.35;
+    text-align: left;
+    padding: 0 2px;
+  }
+
+  .print-ticket-tong-cong {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 8px 4px;
+    border-top: 2px solid #111;
+    border-bottom: 2px solid #111;
+    margin: 8px 0;
+  }
+
+  .print-ticket-khach p {
+    margin: 3px 0;
+    font-size: 9px;
+  }
+
+  .print-ticket-khach span {
+    color: #555;
+    font-weight: 600;
+  }
+
+  .print-ticket-loi-chuc {
+    margin-top: 6px;
+    font-style: italic;
+    color: #333;
+    font-size: 8px;
+  }
+
+  .print-ticket-luu-y {
+    font-size: 8px;
+    color: #666;
+    margin-top: 3px;
+  }
+
+  .print-ticket-footer {
+    text-align: center;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px dashed #999;
+    font-size: 8px;
+    color: #666;
+  }
+
+  nav,
+  header,
+  footer,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+}

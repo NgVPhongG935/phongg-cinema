@@ -1,0 +1,10 @@
+@echo off
+REM File rieng cho Gemini API — KHONG commit (them vao .gitignore)
+REM Lay key AIza... tai https://aistudio.google.com/apikey
+
+set GEMINI_ENABLED=true
+REM Nhieu key cach nhau dau phay — tu dong xoay khi het quota (429)
+set GEMINI_API_KEYS=PASTE_KEY_1,PASTE_KEY_2,PASTE_KEY_3
+REM Hoac dung 1 key (tuong thich cu):
+REM set GEMINI_API_KEY=PASTE_YOUR_AIza_KEY_HERE
+set GEMINI_MODEL=gemini-1.5-flash

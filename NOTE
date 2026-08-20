@@ -1,0 +1,91 @@
+=== CHAY DU AN QLBVXP ===
+
+1) BACKEND (Spring Boot - port 8080)
+   cd d:\QLBVXP
+
+   PowerShell (bat buoc co dau .\ o dau):
+   .\start-backend.cmd
+
+   Hoac chay truc tiep:
+   .\mvnw.cmd spring-boot:run
+
+   Neu muon khoi dong lai backend:
+   .\stop-backend.cmd
+   .\start-backend.cmd
+
+   LOI THUONG GAP: "Port 8080 was already in use"
+   -> Backend DA CHAY roi, khong can chay lai!
+   -> Hoac chay stop-backend.cmd truoc khi start lai
+
+2) FRONTEND (React - port 5173)
+   cd d:\QLBVXP
+
+   PowerShell (bat buoc co dau .\ o dau):
+   .\start-frontend.cmd
+
+   Hoac chay thu cong:
+   cd d:\QLBVXP\frontend
+   npm run dev
+
+   LOI THUONG GAP: "Could not read package.json" o D:\QLBVXP
+   -> Ban dang chay npm o thu muc GOC. Phai vao frontend hoac dung .\start-frontend.cmd
+
+3) MO TRINH DUYET
+   http://localhost:5173
+
+4) MOBILE APP (Expo - Android)
+   cd d:\QLBVXP
+
+   PowerShell:
+   .\start-mobile.cmd
+
+   Hoac chay thu cong:
+   cd d:\QLBVXP\mobile
+   copy .env.example .env
+   (sua EXPO_PUBLIC_API_BASE_URL = http://<IP-LAN-PC>:8080/api/v1)
+   npx expo start
+
+   - Cai Expo Go tren dien thoai Android
+   - Project dung Expo SDK 54 (khop Expo Go tren Play Store)
+   - Neu loi SDK: chay .\stop-mobile.cmd roi .\start-mobile.cmd lai
+   - Dien thoai va PC cung WiFi
+   - Quet QR code de mo app (KHONG bam phim w trong terminal - w chi mo web tren PC)
+   - API tu dong qua Metro proxy, khong can sua IP/firewall
+
+   LOI THUONG GAP: App vao duoc nhung "Khong ket noi duoc backend"
+   -> Nguyen nhan: Windows Firewall chan port 8080 tu dien thoai
+   -> CACH 1 (WiFi): Chuot phai open-firewall-port.cmd -> Run as administrator
+      Sau do tab Tai khoan trong app -> Luu & thu API http://<IP>:8080/api/v1
+   -> CACH 2 (khong can firewall): Chay start-api-tunnel.cmd
+      Copy URL https://xxx.loca.lt -> dat API: https://xxx.loca.lt/api/v1 trong app
+   -> CACH 3 (USB): adb-reverse-backend.cmd -> API http://127.0.0.1:8080/api/v1
+
+   TAI KHOAN DEMO (database seed):
+   - phong@gmail.com / 123456 (khach hang)
+   - admin@gmail.com / 123456 (admin)
+   - staff@gmail.com / 123456 (nhan vien)
+
+   LOI THUONG GAP: HTTP 403 Invalid CORS khi dang nhap (Expo web)
+   -> Nguyen nhan: app web (localhost:8081) goi thang port 8080
+   -> CACH 1: Quet QR Expo Go tren dien thoai (KHONG bam w)
+   -> CACH 2: Tab Tai khoan -> Mac dinh -> Luu & thu (API qua Metro)
+   -> CACH 3: Restart backend sau khi sua CORS (start-backend.cmd)
+   -> Tab Tai khoan -> bam "Mac dinh" -> "Luu & thu" (phai OK phim + dang nhap thu)
+   -> Dung email/mk demo o tren (khong phai email tu tao neu chua dang ky)
+   -> Chay start-backend.cmd truoc khi dang nhap
+
+5) CHATBOT AI (PhongG Assistant)
+   - Nut chat tim #8364ff goc duoi phai web (localhost:5173)
+   - API: POST /api/v1/ai/chat  body: { "userMessage": "..." }
+   - Mac dinh OFFLINE (khong goi Gemini): gemini.enabled=false trong application.yml
+   - Neu muon bat AI Gemini (tu chon):
+     PowerShell: $env:GEMINI_API_KEY="AIza..."; $env:GEMINI_ENABLED="true"; .\start-backend.cmd
+     Key lay tai https://aistudio.google.com/apikey (dang AIza...)
+   - Chat van tra loi: rap, gia ve, phim theo the loai, lich theo ngay — khong can Gemini
+
+6) AI SOAN NOI DUNG PHIM (Admin — khong can Docker)
+   - Chi can Gemini: gemini.local.cmd (GEMINI_ENABLED=true + GEMINI_API_KEY)
+   - mail.local.cmd: MOVIE_AI_ENABLED=false (khong can SearXNG/Docker)
+   - restart: stop-backend.cmd -> start-backend.cmd
+   - Loi 429: het quota Google — doi 2-5 phut, khong bam AI lien tuc, khong chat bot cung luc
+   - Muon cao web: can Docker + start-searxng.cmd + MOVIE_AI_ENABLED=true
