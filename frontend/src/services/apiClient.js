@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+const DEFAULT_API_URL = 'https://phongg-cinema-api.onrender.com/api/v1'
+
 function chuanHoaApiBaseUrl(raw) {
-  const macDinh = '/api/v1'
+  const macDinh = DEFAULT_API_URL
   if (!raw || typeof raw !== 'string') return macDinh
   let url = raw.trim()
   if (!url) return macDinh
@@ -17,12 +19,12 @@ function chuanHoaApiBaseUrl(raw) {
   return url
 }
 
-let apiBaseUrl = '/api/v1'
+let apiBaseUrl = DEFAULT_API_URL
 try {
-  apiBaseUrl = chuanHoaApiBaseUrl(import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL)
+  apiBaseUrl = chuanHoaApiBaseUrl(import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || DEFAULT_API_URL)
 } catch (loi) {
-  console.warn('[apiClient] Không chuẩn hóa được baseURL, dùng /api/v1', loi)
-  apiBaseUrl = '/api/v1'
+  console.warn('[apiClient] Không chuẩn hóa được baseURL, dùng fallback Render API', loi)
+  apiBaseUrl = DEFAULT_API_URL
 }
 
 const apiClient = axios.create({
