@@ -64,6 +64,7 @@ com\cinema\booking\config\MovieSeedDto.class
 com\cinema\booking\config\DataInitializer$5.class
 com\cinema\booking\dto\TicketResponseDto$TicketResponseDtoBuilder.class
 com\cinema\booking\config\WebMvcConfig.class
+com\cinema\booking\service\TmdbPersonService.class
 com\cinema\booking\dto\ComboResponseDto$ComboResponseDtoBuilder.class
 com\cinema\booking\dto\TaoNhanVienRequest.class
 com\cinema\booking\config\MovieCastSeedDto.class

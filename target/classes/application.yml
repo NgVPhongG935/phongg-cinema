@@ -42,8 +42,8 @@ gemini:
   model: ${GEMINI_MODEL:gemini-1.5-flash}
   enabled: ${GEMINI_ENABLED:false}
 tmdb:
-  api-key: ${TMDB_API_KEY:}
-  enabled: ${TMDB_ENABLED:false}
+  api-key: ${TMDB_API_KEY:b8a6c91a6b00242537db0d1281c89d53}
+  enabled: ${TMDB_ENABLED:true}
 jwt:
   secret: PhongGCinemaSecretKey2026PhongGCinemaSecretKey2026
   thoiGianHetHanMs: 86400000
