@@ -1,15 +1,14 @@
 import axios from 'axios'
 
-const DEFAULT_API_URL = 'https://phongg-cinema-api.onrender.com/api/v1'
+const PROD_RENDER_API_URL = 'https://phongg-cinema-api.onrender.com/api/v1'
 
 function chuanHoaApiBaseUrl(raw) {
-  const macDinh = DEFAULT_API_URL
-  if (!raw || typeof raw !== 'string') return macDinh
+  if (!raw || typeof raw !== 'string') return '/api/v1'
   let url = raw.trim()
-  if (!url) return macDinh
+  if (!url) return '/api/v1'
 
   if (url.startsWith('/')) {
-    return url.replace(/\/+$/, '') || macDinh
+    return url.replace(/\/+$/, '') || '/api/v1'
   }
 
   url = url.replace(/\/+$/, '')
@@ -19,12 +18,30 @@ function chuanHoaApiBaseUrl(raw) {
   return url
 }
 
-let apiBaseUrl = DEFAULT_API_URL
+function layApiBaseUrl() {
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL
+  if (envUrl && envUrl.trim()) {
+    return chuanHoaApiBaseUrl(envUrl)
+  }
+
+  // Đang chạy trên môi trường dev cục bộ
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return '/api/v1'
+    }
+  }
+
+  // Chạy trên Render / Production
+  return PROD_RENDER_API_URL
+}
+
+let apiBaseUrl = '/api/v1'
 try {
-  apiBaseUrl = chuanHoaApiBaseUrl(import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || DEFAULT_API_URL)
+  apiBaseUrl = layApiBaseUrl()
 } catch (loi) {
-  console.warn('[apiClient] Không chuẩn hóa được baseURL, dùng fallback Render API', loi)
-  apiBaseUrl = DEFAULT_API_URL
+  console.warn('[apiClient] Không xác định được baseURL, dùng /api/v1', loi)
+  apiBaseUrl = '/api/v1'
 }
 
 const apiClient = axios.create({
