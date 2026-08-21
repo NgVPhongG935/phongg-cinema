@@ -17,7 +17,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/backup")
-@CrossOrigin(origins = "*") // Đảm bảo không bị chặn CORS từ Frontend 5173
 public class BackupController {
 
     private final MovieRepository movieRepository;

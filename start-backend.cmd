@@ -29,20 +29,20 @@ if "%GEMINI_ENABLED%"=="true" if "%GEMINI_API_KEY%"=="" (
   echo.
 )
 
-REM Mac dinh: profile local + Mongo nhung (tranh Atlas SSL chan IP)
-REM Dung Atlas: set SPRING_PROFILES_ACTIVE=atlas (hoac xoa) va whitelist IP
-if "%SPRING_PROFILES_ACTIVE%"=="" set SPRING_PROFILES_ACTIVE=local
+REM Mac dinh: profile atlas (dung MongoDB Atlas cloud)
+REM Muon chay Mongo nhung offline: set SPRING_PROFILES_ACTIVE=local
+if "%SPRING_PROFILES_ACTIVE%"=="" set SPRING_PROFILES_ACTIVE=atlas
 
 echo.
 echo ============================================================
 echo  Backend profile: %SPRING_PROFILES_ACTIVE%
-echo  local = Mongo nhung (khong can Atlas)
-echo  Muon Atlas: set SPRING_PROFILES_ACTIVE= ^(rong^) sau khi whitelist IP
+echo  atlas = MongoDB Atlas Cloud
+echo  local = Mongo nhung offline
 echo ============================================================
 echo.
 
 echo Dang khoi dong backend...
-call mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=%SPRING_PROFILES_ACTIVE%
+call mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=%SPRING_PROFILES_ACTIVE%"
 if errorlevel 1 (
   echo.
   echo ============================================================

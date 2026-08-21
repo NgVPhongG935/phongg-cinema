@@ -54,7 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-// @Component
+@Component
 public class DataInitializer implements CommandLineRunner {
     private static final Logger nhatKy = LoggerFactory.getLogger(DataInitializer.class);
     private static final BigDecimal GIA_CO_BAN = BigDecimal.valueOf(90000);
@@ -132,7 +132,17 @@ public class DataInitializer implements CommandLineRunner {
             boSungSoDoGheTieuChuanNeuCan();
         }
 
-        // 4. Nạp phim (chỉ nạp dữ liệu mẫu NẾU database chưa có phim)
+        // 4. Nạp phim (dọn phim rỗng nếu có và bổ sung từ seed)
+        try {
+            khoPhim.findAll().forEach(phim -> {
+                if (phim.getTitle() == null || phim.getTitle().isBlank()) {
+                    khoPhim.delete(phim);
+                }
+            });
+        } catch (Exception loi) {
+            nhatKy.warn("Không thể dọn dẹp phim rỗng: {}", loi.getMessage());
+        }
+
         if (khoPhim.count() == 0) {
             nhatKy.info("Database chưa có phim, đang nạp dữ liệu phim mẫu ban đầu...");
             napDuLieuPhimBanDau();
@@ -140,7 +150,10 @@ public class DataInitializer implements CommandLineRunner {
             boSungPhimSapChieuNeuCan();
             capNhatDienVienDaoDienNeuCan();
         } else {
-            nhatKy.info("Database đã có sẵn {} phim. Bỏ qua bước nạp lại dữ liệu để giữ nguyên thay đổi.", khoPhim.count());
+            nhatKy.info("Database đã có sẵn {} phim. Bổ sung phim thiếu từ seed nếu cần...", khoPhim.count());
+            boSungPhimNeuCan();
+            boSungPhimSapChieuNeuCan();
+            capNhatDienVienDaoDienNeuCan();
         }
 
         // 5. Nạp suất chiếu (chỉ khi chưa có suất chiếu)

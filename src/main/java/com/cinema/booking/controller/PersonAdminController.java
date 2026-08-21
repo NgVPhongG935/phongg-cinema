@@ -25,7 +25,6 @@ import java.util.regex.Pattern;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
-@CrossOrigin(origins = "*")
 public class PersonAdminController {
 
     private final PersonRepository personRepository;

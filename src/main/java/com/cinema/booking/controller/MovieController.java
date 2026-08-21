@@ -15,10 +15,6 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {
-        RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT,
-        RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.PATCH
-})
 @RequestMapping({"/api/v1/movies", "/movies"})
 public class MovieController {
     private final MovieService dichVuPhim;
