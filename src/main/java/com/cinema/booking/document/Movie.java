@@ -59,7 +59,8 @@ public class Movie {
     @JsonAlias({"gioiHanTuoi"})
     private String ageRating;
 
-    @JsonAlias({"ngonNgu", "movieLanguage"})
+    @Field("movieLanguage")
+    @JsonAlias({"ngonNgu", "movieLanguage", "language"})
     private String language;
 
     @JsonAlias({"trangThai"})
