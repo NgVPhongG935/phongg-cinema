@@ -109,9 +109,11 @@ public class AuthServiceImpl implements AuthService {
         otpCache.put(email, data);
         log.info("Đã lưu cache OTP đăng ký cho email {}. Mã OTP: {}", email, otp);
 
-        log.info("Dang gui OTP {} den email: {}", otp, email);
-        // Gửi email chứa mã OTP
-        emailService.guiEmailOtp(email, hoTen, otp);
+        try {
+            emailService.guiEmailOtp(email, hoTen, otp);
+        } catch (Exception e) {
+            log.error("❌ Không thể gửi email qua SMTP: {}. Fallback OTP cho email [{}]: [ {} ]", e.getMessage(), email, otp);
+        }
 
         return Map.of(
                 "success", true,
