@@ -54,7 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-@Component
+// @Component
 public class DataInitializer implements CommandLineRunner {
     private static final Logger nhatKy = LoggerFactory.getLogger(DataInitializer.class);
     private static final BigDecimal GIA_CO_BAN = BigDecimal.valueOf(90000);
@@ -553,8 +553,12 @@ public class DataInitializer implements CommandLineRunner {
                 canCapNhat = true;
             }
             if (canCapNhat) {
-                khoSuatChieu.save(suat);
-                soCapNhat++;
+                try {
+                    mongoTemplate.save(suat);
+                    soCapNhat++;
+                } catch (Exception e) {
+                    nhatKy.warn("Không thể cập nhật suất chiếu {}: {}", suat.getId(), e.getMessage());
+                }
             }
         }
         if (soCapNhat > 0) {

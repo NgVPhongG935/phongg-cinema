@@ -30,20 +30,8 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource nguonCors() {
         CorsConfiguration cauHinh = new CorsConfiguration();
-        // Vite web + Expo Metro (8081-8083) + LAN dev
-        cauHinh.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",
-                "http://127.0.0.1:*",
-                "http://192.168.*.*:*",
-                "https://*.ngrok-free.dev",
-                "https://*.ngrok-free.app",
-                "http://*.ngrok-free.dev",
-                "http://*.ngrok-free.app",
-                "https://*.ngrok.io",
-                "http://*.ngrok.io",
-                "https://*.ngrok.app",
-                "http://*.ngrok.app"
-        ));
+        // Cho phép tất cả origin patterns (hỗ trợ Render frontend, local dev, Expo, ngrok, mobile app)
+        cauHinh.setAllowedOriginPatterns(List.of("*"));
         cauHinh.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
         cauHinh.setAllowedHeaders(List.of("*"));
         cauHinh.setExposedHeaders(List.of("*"));
