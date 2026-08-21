@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
-import org.springframework.data.mongodb.core.index.TextIndexed;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,16 +17,14 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "movies", language = "none")
+@Document(collection = "movies")
 public class Movie {
     @Id
     private String id;
 
-    @TextIndexed
     @JsonAlias({"tenPhim"})
     private String title;
 
-    @TextIndexed
     @JsonAlias({"moTa"})
     private String description;
 
