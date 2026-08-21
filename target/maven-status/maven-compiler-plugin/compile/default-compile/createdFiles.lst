@@ -211,6 +211,7 @@ com\cinema\booking\service\GoogleTokenXacThuc.class
 com\cinema\booking\dto\MovieReviewDto.class
 com\cinema\booking\util\KiemTraThoiGianSoatVe.class
 com\cinema\booking\service\StaffServiceImpl.class
+com\cinema\booking\config\MailConfig.class
 com\cinema\booking\dto\GoogleDangNhapRequest.class
 com\cinema\booking\service\SeedServiceImpl.class
 com\cinema\booking\document\Region$RegionBuilder.class

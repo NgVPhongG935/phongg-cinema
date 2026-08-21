@@ -5,6 +5,7 @@ D:\QLBVXP\src\main\java\com\cinema\booking\config\CinemaSeedDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\DataInitializer.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\GeminiStartupLogger.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\JwtUtil.java
+D:\QLBVXP\src\main\java\com\cinema\booking\config\MailConfig.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\MailStartupLogger.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\MovieCastSeedDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\MovieSeedDto.java
