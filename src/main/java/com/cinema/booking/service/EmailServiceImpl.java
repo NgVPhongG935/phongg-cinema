@@ -27,7 +27,7 @@ public class EmailServiceImpl implements EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:phonghsg935@gmail.com}")
+    @Value("${spring.mail.username:windphongg935@gmail.com}")
     private String fromEmail;
 
     @Override
@@ -52,7 +52,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            String senderAddress = (fromEmail != null && !fromEmail.isBlank()) ? fromEmail.trim() : "phonghsg935@gmail.com";
+            String senderAddress = (fromEmail != null && !fromEmail.isBlank()) ? fromEmail.trim() : "windphongg935@gmail.com";
             helper.setFrom(senderAddress, "PhongG Cinema - Xác Thực Tài Khoản");
             helper.setTo(toEmail.trim());
             helper.setSubject("Mã xác thực đăng ký tài khoản PhongG Cinema");
@@ -202,7 +202,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            String senderAddress = (fromEmail != null && !fromEmail.isBlank()) ? fromEmail.trim() : "phonghsg935@gmail.com";
+            String senderAddress = (fromEmail != null && !fromEmail.isBlank()) ? fromEmail.trim() : "windphongg935@gmail.com";
             helper.setFrom(senderAddress, "PhongG Cinema - Vé Điện Tử");
             helper.setTo(emailKhach.trim());
             helper.setSubject("Xác nhận đặt vé thành công - Mã vé: " + maVe);

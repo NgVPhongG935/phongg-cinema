@@ -17,10 +17,10 @@ spring:
       uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://phong93055_db_user:ncs00305@cluster0.bjj651r.mongodb.net/cinema-db?retryWrites=true&w=majority}
       auto-index-creation: true
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    host: ${SPRING_MAIL_HOST:${MAIL_HOST:smtp.gmail.com}}
+    port: ${SPRING_MAIL_PORT:${MAIL_PORT:587}}
+    username: ${SPRING_MAIL_USERNAME:${MAIL_USERNAME:}}
+    password: ${SPRING_MAIL_PASSWORD:${MAIL_PASSWORD:}}
     properties:
       mail:
         smtp:
