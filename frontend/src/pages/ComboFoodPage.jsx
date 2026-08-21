@@ -140,7 +140,16 @@ export default function ComboFoodPage() {
                 <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
                   {combo.hinhAnh ? (
                     <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl">
-                      <img src={combo.hinhAnh} alt={combo.ten} className="h-full w-full object-cover" />
+                      <img
+                        src={combo.hinhAnh}
+                        alt={combo.ten}
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null
+                          e.currentTarget.src = 'https://placehold.co/300x450?text=No+Image'
+                        }}
+                      />
                     </div>
                   ) : (
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/30 to-orange-600/20 text-amber-300">

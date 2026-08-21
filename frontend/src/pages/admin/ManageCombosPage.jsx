@@ -261,7 +261,10 @@ export default function ManageCombosPage() {
                   src={combo.hinhAnh || ANH_MAC_DINH}
                   alt={combo.tenCombo}
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
-                  onError={(e) => { e.target.src = ANH_MAC_DINH }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null
+                    e.currentTarget.src = ANH_MAC_DINH
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="absolute left-3 top-3 flex flex-wrap gap-2">

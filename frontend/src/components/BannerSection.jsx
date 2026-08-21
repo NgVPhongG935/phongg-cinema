@@ -95,7 +95,12 @@ export default function BannerSection() {
               <img
                 src={chuanHoaUrlPoster(backdrop) || POSTER_MAC_DINH}
                 alt={phim.title}
+                loading="lazy"
                 className="h-full w-full object-cover object-center filter"
+                onError={(e) => {
+                  e.currentTarget.onerror = null
+                  e.currentTarget.src = POSTER_MAC_DINH
+                }}
               />
             </div>
           )

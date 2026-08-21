@@ -321,7 +321,8 @@ export default function ManagePersonsPage() {
                           alt={item.name}
                           className="h-11 w-11 rounded-full object-cover ring-2 ring-white/10 shadow-md shrink-0"
                           onError={(e) => {
-                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                            e.currentTarget.onerror = null
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
                               item.name || 'Artist'
                             )}&background=8b5cf6&color=fff`
                           }}

@@ -83,7 +83,8 @@ export default function PersonDetailModal({ person, onClose }) {
             alt={person.name}
             className="h-28 w-28 sm:h-32 sm:w-32 rounded-3xl object-cover ring-4 ring-fuchsia-500/20 shadow-xl shadow-fuchsia-950/40"
             onError={(e) => {
-              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              e.currentTarget.onerror = null
+              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
                 person.name
               )}&background=8b5cf6&color=fff&size=256`
             }}
@@ -139,7 +140,8 @@ export default function PersonDetailModal({ person, onClose }) {
                     alt={phim.title || phim.tenPhim}
                     className="h-24 w-16 rounded-xl object-cover shrink-0 shadow-md"
                     onError={(e) => {
-                      e.target.src = 'https://picsum.photos/seed/movie/200/300'
+                      e.currentTarget.onerror = null
+                      e.currentTarget.src = 'https://placehold.co/300x450?text=No+Image'
                     }}
                   />
                   <div className="flex-1 min-w-0 flex flex-col justify-between">

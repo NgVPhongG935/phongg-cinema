@@ -296,7 +296,8 @@ export default function TimKiemPhim({ className = '' }) {
                     alt={p.name}
                     className="h-10 w-10 rounded-full object-cover shrink-0 ring-1 ring-white/10"
                     onError={(e) => {
-                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      e.currentTarget.onerror = null
+                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
                         p.name
                       )}&background=8b5cf6&color=fff`
                     }}
