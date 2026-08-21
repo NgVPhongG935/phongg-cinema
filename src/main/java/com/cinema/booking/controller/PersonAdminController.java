@@ -6,6 +6,7 @@ import com.cinema.booking.dto.PersonAiResponseDto;
 import com.cinema.booking.repository.MovieRepository;
 import com.cinema.booking.repository.PersonRepository;
 import com.cinema.booking.service.GeminiApiClient;
+import com.cinema.booking.service.TmdbPersonService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class PersonAdminController {
 
     private final PersonRepository personRepository;
     private final MovieRepository movieRepository;
+    private final TmdbPersonService tmdbPersonService;
     private final GeminiApiClient geminiClient;
     private final ObjectMapper objectMapper;
 
@@ -143,7 +145,36 @@ public class PersonAdminController {
 
         String ten = name.trim();
 
-        // 1. Thử gọi Gemini AI nếu có key
+        // 1. ƯU TIÊN: Tra cứu trên The Movie Database (TMDb) để lấy ảnh chân dung HD, ngày sinh, tác phẩm
+        PersonAiResponseDto tmdbResult = tmdbPersonService.lookupPerson(ten);
+        if (tmdbResult != null) {
+            // Nếu có Gemini, yêu cầu sinh tiểu sử ngắn 1-2 câu tiếng Việt trau chuốt
+            if (geminiBat && geminiClient.coKhoaHopLe()) {
+                try {
+                    String roleName = "DIRECTOR".equalsIgnoreCase(tmdbResult.getRoleType()) ? "Đạo diễn" : "Diễn viên";
+                    String prompt = "Viết đúng 1 đến 2 câu ngắn gọn, súc tích và hấp dẫn bằng tiếng Việt giới thiệu sự nghiệp của nghệ sĩ "
+                            + tmdbResult.getName() + " (" + roleName + "). "
+                            + (tmdbResult.getBio() != null && !tmdbResult.getBio().isBlank() ? "Thông tin tham khảo: " + tmdbResult.getBio() : "")
+                            + "\nChỉ trả về trực tiếp đoạn văn bản tiếng Việt ngắn gọn, không kèm định dạng markdown hay giải thích gì khác.";
+
+                    Map<String, Object> body = Map.of(
+                            "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
+                            "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 200)
+                    );
+
+                    String rawResponse = geminiClient.generateContent(body);
+                    String aiBio = extractPlainText(rawResponse);
+                    if (aiBio != null && !aiBio.isBlank()) {
+                        tmdbResult.setBio(aiBio.trim());
+                    }
+                } catch (Exception e) {
+                    log.warn("Gemini trau chuốt tiểu sử nghệ sĩ '{}' lỗi: {}", ten, e.getMessage());
+                }
+            }
+            return ResponseEntity.ok(tmdbResult);
+        }
+
+        // 2. Nếu TMDb không tìm thấy, thử tra cứu bằng Gemini AI
         if (geminiBat && geminiClient.coKhoaHopLe()) {
             try {
                 String prompt = "Tra cứu thông tin nghệ sĩ/diễn viên/đạo diễn: " + ten + ". "
@@ -153,7 +184,7 @@ public class PersonAdminController {
                         + "  \"birthDate\": \"YYYY-MM-DD (năm-tháng-ngày sinh chuẩn, ví dụ 1976-10-23)\",\n"
                         + "  \"roleType\": \"ACTOR hoặc DIRECTOR hoặc BOTH\",\n"
                         + "  \"avatarUrl\": \"link ảnh đại diện nếu có\",\n"
-                        + "  \"bio\": \"Tóm tắt 1 câu tiểu sử súc tích bằng tiếng Việt\"\n"
+                        + "  \"bio\": \"Tóm tắt 1-2 câu tiểu sử súc tích bằng tiếng Việt\"\n"
                         + "}";
 
                 Map<String, Object> body = Map.of(
@@ -171,7 +202,7 @@ public class PersonAdminController {
                     String aiRoleType = node.has("roleType") ? node.get("roleType").asText("ACTOR") : "ACTOR";
                     String aiAvatarUrl = node.has("avatarUrl") && !node.get("avatarUrl").asText().isBlank()
                             ? node.get("avatarUrl").asText()
-                            : "https://ui-avatars.com/api/?name=" + ten.replace(" ", "+") + "&background=8b5cf6&color=fff&size=256";
+                            : "https://ui-avatars.com/api/?name=" + ten.replace(" ", "+") + "&background=8b5cf6&color=fff&size=512";
                     String aiBio = node.has("bio") ? node.get("bio").asText("") : "";
 
                     return ResponseEntity.ok(PersonAiResponseDto.builder()
@@ -187,14 +218,26 @@ public class PersonAdminController {
             }
         }
 
-        // 2. Fallback an toàn nếu AI offline
+        // 3. Fallback an toàn nếu cả TMDb và Gemini đều không có kết quả
         return ResponseEntity.ok(PersonAiResponseDto.builder()
                 .name(ten)
                 .birthDate("")
                 .roleType("ACTOR")
-                .avatarUrl("https://ui-avatars.com/api/?name=" + ten.replace(" ", "+") + "&background=8b5cf6&color=fff&size=256")
+                .avatarUrl("https://ui-avatars.com/api/?name=" + ten.replace(" ", "+") + "&background=8b5cf6&color=fff&size=512")
                 .bio(ten + " là một nghệ sĩ tài năng với nhiều tác phẩm điện ảnh xuất sắc.")
                 .build());
+    }
+
+    private String extractPlainText(String raw) {
+        if (raw == null) return null;
+        try {
+            JsonNode root = objectMapper.readTree(raw);
+            JsonNode textNode = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
+            String text = textNode.asText("");
+            return text.replace("```json", "").replace("```", "").trim();
+        } catch (Exception e) {
+            return raw.trim();
+        }
     }
 
     private String extractJson(String raw) {
