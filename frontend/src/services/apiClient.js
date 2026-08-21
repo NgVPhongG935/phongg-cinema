@@ -1,23 +1,23 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://phongg-cinema-api.onrender.com'
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://phongg-cinema-api.onrender.com/api/v1'
 
-const apiClient = axios.create({
-  baseURL: BASE_URL.endsWith('/api/v1') ? BASE_URL : `${BASE_URL}/api/v1`,
+const axiosClient = axios.create({
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': 'true',
   },
 })
 
-apiClient.interceptors.request.use((cauHinh) => {
+axiosClient.interceptors.request.use((cauHinh) => {
   cauHinh.headers['ngrok-skip-browser-warning'] = 'true'
   const maTruyCap = localStorage.getItem('token') || localStorage.getItem('accessToken')
   if (maTruyCap) cauHinh.headers.Authorization = `Bearer ${maTruyCap}`
   return cauHinh
 })
 
-apiClient.interceptors.response.use(
+axiosClient.interceptors.response.use(
   (phanHoi) => phanHoi,
   (loi) => {
     if (loi.response?.status === 401) {
@@ -31,8 +31,9 @@ apiClient.interceptors.response.use(
   },
 )
 
-const axiosClient = apiClient
+const apiClient = axiosClient
 
-export { BASE_URL, axiosClient }
-export default apiClient
+export { BASE_URL, axiosClient, apiClient }
+export default axiosClient
+
 
