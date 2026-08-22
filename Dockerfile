@@ -11,4 +11,5 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 # Giới hạn Heap RAM tối đa 380MB để không vượt quá trần 512MB của Render
-ENTRYPOINT ["java", "-Xms128m", "-Xmx380m", "-XX:+UseSerialGC", "-jar", "app.jar"]
+# Heap thấp + SerialGC phù hợp Render 512MB; MaxMetaspace hạn chế native leak
+ENTRYPOINT ["java", "-Xms128m", "-Xmx380m", "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=128m", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]

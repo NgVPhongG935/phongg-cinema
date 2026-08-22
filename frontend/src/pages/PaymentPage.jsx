@@ -10,10 +10,10 @@ import { apDungMaGiamGia } from '../services/voucherService'
 import { taoDanhSachComboDat } from '../utils/comboFood'
 import { dinhDangTien } from '../utils/formatters'
 import {
-  layDanhSachHinhThuc, layHinhThucTheoMa, tenHinhThucThanhToan, datCacheHinhThuc, chuyenMaGuiApi,
+  layDanhSachHinhThuc, layHinhThucTheoMa, tenHinhThucThanhToan, chuyenMaGuiApi,
   laChuyenKhoanThuCong, taoMaThamChieuTam, taoNoiDungChuyenKhoan,
 } from '../utils/hinhThucThanhToan'
-import { layDanhSachHinhThucThanhToan } from '../services/paymentMethodService'
+import { useHinhThucThanhToan } from '../hooks/useCatalogQueries'
 import { layThongBaoLoiApi } from '../utils/layThongBaoLoiApi'
 import { hienThongBaoLoi } from '../utils/hienThongBao'
 import { kiemTraTaoVe, LoiDuLieuDatVe } from '../utils/kiemTraDuLieuDatVe'
@@ -34,7 +34,8 @@ export default function PaymentPage() {
   const [voucherApDung, datVoucherApDung] = useState(null)
   const [dangApMa, datDangApMa] = useState(false)
   const [loiVoucher, datLoiVoucher] = useState('')
-  const [danhSachHt, datDanhSachHt] = useState(() => layDanhSachHinhThuc())
+  const { data: danhSachHtQuery } = useHinhThucThanhToan()
+  const danhSachHt = danhSachHtQuery?.length ? danhSachHtQuery : layDanhSachHinhThuc()
   const [hienModalCk, datHienModalCk] = useState(false)
   const [maThamChieu, datMaThamChieu] = useState('')
   const [donHangXem, datDonHangXem] = useState(null)
@@ -43,15 +44,6 @@ export default function PaymentPage() {
   const daGiuGheLanDau = useRef(false)
   const dangGiaHanRef = useRef(false)
   const [dangKhoiTaoGhe, datDangKhoiTaoGhe] = useState(true)
-
-  useEffect(() => {
-    layDanhSachHinhThucThanhToan()
-      .then((ds) => {
-        datCacheHinhThuc(ds)
-        datDanhSachHt(ds)
-      })
-      .catch(() => {})
-  }, [])
 
   const gheChon = viTri.state?.gheChon || []
   const tienGhe = viTri.state?.tienGhe || 0

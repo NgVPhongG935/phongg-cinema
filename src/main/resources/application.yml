@@ -12,9 +12,12 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  cache:
+    type: simple
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://phong93055_db_user:ncs00305@cluster0.bjj651r.mongodb.net/cinema-db?retryWrites=true&w=majority}
+      # maxPoolSize=10 / minPoolSize=0: giảm RAM & socket trên Render Free
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://phong93055_db_user:ncs00305@cluster0.bjj651r.mongodb.net/cinema-db?retryWrites=true&w=majority&maxPoolSize=10&minPoolSize=0&maxIdleTimeMS=30000&waitQueueTimeoutMS=5000}
       auto-index-creation: true
   mail:
     host: ${SPRING_MAIL_HOST:${MAIL_HOST:smtp.gmail.com}}
@@ -40,6 +43,16 @@ spring:
 server:
   port: ${PORT:8080}
   address: 0.0.0.0
+  compression:
+    enabled: true
+
+logging:
+  level:
+    root: WARN
+    com.cinema.booking: INFO
+    org.springframework.data.mongodb: WARN
+    org.mongodb.driver: WARN
+
 gemini:
   api-key: ${GEMINI_API_KEY:}
   api-keys: ${GEMINI_API_KEYS:}

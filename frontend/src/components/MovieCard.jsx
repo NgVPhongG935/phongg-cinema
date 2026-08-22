@@ -5,12 +5,13 @@ import AnhPosterPhim from './AnhPosterPhim'
 import { layUrlPosterPhim } from '../utils/anhPosterPhim'
 
 export default function MovieCard({ phim, chiSo = 0 }) {
-  const title = phim.title || 'Phim'
-  const theLoaiDau = phim.genres?.[0] || 'Phim'
+  const title = phim.title || phim.tenPhim || 'Phim'
+  const genres = phim.genres || phim.theLoai || []
+  const theLoaiDau = genres[0] || 'Phim'
   const rawPoster = layUrlPosterPhim(phim)
-  const duration = phim.duration ?? 0
-  const ageRating = phim.ageRating
-  const theLoaiChuoi = phim.genres?.join(' · ') || ''
+  const duration = phim.duration ?? phim.thoiLuong ?? 0
+  const ageRating = phim.ageRating || phim.doTuoi
+  const theLoaiChuoi = genres.join(' · ') || ''
 
   return (
     <Link

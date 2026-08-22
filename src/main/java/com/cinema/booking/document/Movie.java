@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -18,6 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "movies")
+@CompoundIndex(name = "idx_status_releaseDate", def = "{'status': 1, 'releaseDate': -1}")
 public class Movie {
     @Id
     private String id;
@@ -60,9 +63,11 @@ public class Movie {
     @JsonAlias({"ngonNgu", "movieLanguage", "language"})
     private String language;
 
+    @Indexed
     @JsonAlias({"trangThai"})
     private MovieStatus status;
 
+    @Indexed
     private LocalDate releaseDate;
 
     // Compatibility getters & setters for MongoDB / Legacy field mapping

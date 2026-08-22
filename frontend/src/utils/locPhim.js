@@ -145,22 +145,22 @@ export const CHI_SO_LOC_RONG = { rapTheoPhim: {}, dinhDangTheoPhim: {} }
 
 
 export const ganMetaPhim = (phim, chiSoLocPhim = CHI_SO_LOC_RONG) => {
-  const title = phim.title || ''
+  const title = phim.title || phim.tenPhim || ''
   const hash = bamHash(phim.id || title)
   const dinhDangs = chiSoLocPhim?.dinhDangTheoPhim?.[phim.id] || []
-  const duration = phim.duration ?? 90
+  const duration = phim.duration ?? phim.thoiLuong ?? 90
   const ratingCalculated = Number((7 + (hash % 26) / 10).toFixed(1))
   const rating = phim.rating ?? ratingCalculated
 
   return {
     ...phim,
     title,
-    genres: phim.genres || [],
+    genres: phim.genres || phim.theLoai || [],
     duration,
-    ageRating: phim.ageRating || 'P',
-    posterUrl: phim.posterUrl || '',
-    trailerUrl: phim.trailerUrl || '',
-    description: phim.description || '',
+    ageRating: phim.ageRating || phim.doTuoi || 'P',
+    posterUrl: phim.posterUrl || phim.anhPoster || '',
+    trailerUrl: phim.trailerUrl || phim.urlTrailer || '',
+    description: phim.description || phim.moTa || '',
     dinhDang: dinhDangs[0] || '2D Lồng Tiếng',
     danhSachDinhDang: dinhDangs,
     rating,

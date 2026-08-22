@@ -7,43 +7,44 @@ import KhuonSkeletPhim from '../components/KhuonSkeletPhim'
 import QuickCinemaLocator from '../components/QuickCinemaLocator'
 import ThanhLocPhim from '../components/ThanhLocPhim'
 import { useViTriRap } from '../context/ViTriRapContext'
-import { layDanhSachPhim } from '../services/movieService'
-import { layDanhSachRap, layChiSoLocPhim } from '../services/showtimeService'
+import { useDuLieuTrangChu } from '../hooks/useCatalogQueries'
+import { KICH_THUOC_TRANG_CHU } from '../services/homeService'
 import { CHI_SO_LOC_RONG, KIEU_SAP_XEP, locVaSapXepPhim } from '../utils/locPhim'
 import { layDanhSachRapCoSuat } from '../utils/quickCinemaLocator'
 
-const KICH_THUOC_TRANG = 10
-
 export default function HomePage() {
   const movieListRef = useRef(null)
-  const [danhSachPhim, datDanhSachPhim] = useState([])
-  const [danhSachRap, datDanhSachRap] = useState([])
-  const [dangTai, datDangTai] = useState(true)
   const [thamSoUrl, datThamSoUrl] = useSearchParams()
   const [trangThai, datTrangThai] = useState('SHOWING')
-  const [tongTrang, datTongTrang] = useState(0)
-  const [tongPhim, datTongPhim] = useState(0)
   const [theLoaiDuocChon, datTheLoaiDuocChon] = useState('TAT_CA')
   const [rapDuocChon, datRapDuocChon] = useState('TAT_CA')
   const [dinhDangDuocChon, datDinhDangDuocChon] = useState('TAT_CA')
   const [doTuoiDuocChon, datDoTuoiDuocChon] = useState('TAT_CA')
   const [kieuSapXep, datKieuSapXep] = useState(KIEU_SAP_XEP.MOI_NHAT)
-  const [chiSoLocPhim, datChiSoLocPhim] = useState(CHI_SO_LOC_RONG)
   const [maRapWidget, datMaRapWidget] = useState(null)
   const { rapGanNhat } = useViTriRap()
+
+  const trangHienTai = Math.max(0, (parseInt(thamSoUrl.get('page'), 10) || 1) - 1)
+  const tuKhoa = thamSoUrl.get('tuKhoa') || undefined
+
+  const { data, isLoading, isFetching } = useDuLieuTrangChu({
+    trangThai,
+    page: trangHienTai,
+    tuKhoa,
+    size: KICH_THUOC_TRANG_CHU,
+  })
+
+  const danhSachPhim = data?.danhSachPhim || []
+  const danhSachRap = data?.danhSachRap || []
+  const chiSoLocPhim = data?.chiSoLocPhim || CHI_SO_LOC_RONG
+  const tongTrang = data?.tongTrang || 0
+  const tongPhim = data?.tongPhim || 0
+  const dangTai = isLoading || (isFetching && !data)
+
   const rapGanNhatId = rapGanNhat(danhSachRap)?.id || null
   const rapWidget = danhSachRap.find((rap) => rap.id === maRapWidget) || null
   const danhSachRapCoSuat = useMemo(() => layDanhSachRapCoSuat(chiSoLocPhim), [chiSoLocPhim])
 
-  // 1. ĐỒNG BỘ SỐ TRANG TỪ URL QUERY PARAMS (?page=4)
-  const trangHienTai = Math.max(0, (parseInt(thamSoUrl.get('page'), 10) || 1) - 1)
-
-  useEffect(() => {
-    layDanhSachRap().then(datDanhSachRap).catch(() => datDanhSachRap([]))
-    layChiSoLocPhim().then(datChiSoLocPhim).catch(() => datChiSoLocPhim(CHI_SO_LOC_RONG))
-  }, [])
-
-  // 2. GIỮ VỊ TRÍ CUỘN CHUỘT KHI QUAY LẠI TỪ TRANG CHI TIẾT
   useEffect(() => {
     const pageParam = parseInt(thamSoUrl.get('page'), 10)
     if (pageParam && pageParam > 1) {
@@ -53,33 +54,13 @@ export default function HomePage() {
     }
   }, [])
 
-  useEffect(() => {
-    datDangTai(true)
-    layDanhSachPhim({
-      tuKhoa: thamSoUrl.get('tuKhoa') || undefined,
-      trangThai,
-      page: trangHienTai,
-      size: KICH_THUOC_TRANG,
-    })
-      .then((duLieu) => {
-        const danhSach = duLieu.content || (Array.isArray(duLieu) ? duLieu : [])
-        const tongSoPhim = duLieu.totalElements ?? danhSach.length
-        const tongSoTrang = duLieu.totalPages ?? Math.max(1, Math.ceil(tongSoPhim / KICH_THUOC_TRANG))
-        datDanhSachPhim(danhSach)
-        datTongTrang(tongSoTrang)
-        datTongPhim(tongSoPhim)
-      })
-      .catch(() => {
-        datDanhSachPhim([])
-        datTongTrang(0)
-        datTongPhim(0)
-      })
-      .finally(() => datDangTai(false))
-    layChiSoLocPhim().then(datChiSoLocPhim).catch(() => {})
-  }, [thamSoUrl, trangThai, trangHienTai])
-
   const danhSachPhimLoc = useMemo(
-    () => locVaSapXepPhim(danhSachPhim, { theLoaiDuocChon, rapDuocChon, dinhDangDuocChon, doTuoiDuocChon, kieuSapXep, rapGanNhatId }, chiSoLocPhim),
+    () =>
+      locVaSapXepPhim(
+        danhSachPhim,
+        { theLoaiDuocChon, rapDuocChon, dinhDangDuocChon, doTuoiDuocChon, kieuSapXep, rapGanNhatId },
+        chiSoLocPhim,
+      ),
     [danhSachPhim, theLoaiDuocChon, rapDuocChon, dinhDangDuocChon, doTuoiDuocChon, kieuSapXep, rapGanNhatId, chiSoLocPhim],
   )
 
@@ -103,7 +84,6 @@ export default function HomePage() {
     datThamSoUrl(paramsMoi)
   }
 
-  // Danh sách các số trang hiển thị
   const danhSachTrang = useMemo(() => {
     if (tongTrang <= 1) return []
     return Array.from({ length: tongTrang }, (_, i) => i)
@@ -117,13 +97,15 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen bg-[#0a0714] text-gray-100">
-      {/* 1. HIỆU ỨNG NỀN AMBIENT GLOW */}
       <div className="pointer-events-none fixed -left-40 -top-40 z-0 h-96 w-96 rounded-full bg-purple-600/20 blur-[130px]" />
       <div className="pointer-events-none fixed -bottom-40 -right-40 z-0 h-96 w-96 rounded-full bg-indigo-600/20 blur-[150px]" />
       <div className="pointer-events-none fixed left-1/2 top-1/3 z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-fuchsia-600/10 blur-[140px]" />
 
       <div className="relative z-10">
-        <BannerSection />
+        <BannerSection
+          danhSachPhim={trangThai === 'SHOWING' && trangHienTai === 0 ? danhSachPhim : null}
+          chiSoLocPhim={chiSoLocPhim}
+        />
 
         <section className="mx-auto max-w-7xl px-4 pb-4 pt-8">
           <QuickCinemaLocator
@@ -141,7 +123,7 @@ export default function HomePage() {
               <h2 className="tieu-de-cyber text-2xl font-bold sm:text-3xl">Phim đang chiếu</h2>
               <p className="mt-1 text-sm text-slate-400">
                 {tongPhim > 0
-                  ? `Trang ${trangHienTai + 1}/${Math.max(tongTrang, 1)} · ${tongPhim} phim`
+                  ? `Trang ${trangHienTai + 1}/${Math.max(tongTrang, 1)} · ${tongPhim} phim · ${KICH_THUOC_TRANG_CHU}/trang`
                   : 'Lọc nhanh theo thể loại, rạp, định dạng và sắp xếp yêu thích'}
               </p>
             </div>
@@ -186,7 +168,6 @@ export default function HomePage() {
             datKieuSapXep={datKieuSapXep}
           />
 
-          {/* LƯỚI MOVIE CARD RESPONSIVE */}
           {dangTai ? (
             <KhuonSkeletPhim />
           ) : (
@@ -204,7 +185,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* CỤM PHÂN TRANG NEON CYBER */}
           {!dangTai && tongTrang > 1 && (
             <div className="mt-12 flex justify-center">
               <nav

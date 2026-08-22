@@ -294,6 +294,8 @@ export default function TimKiemPhim({ className = '' }) {
                       )}&background=8b5cf6&color=fff`
                     }
                     alt={p.name}
+                    loading="lazy"
+                    decoding="async"
                     className="h-10 w-10 rounded-full object-cover shrink-0 ring-1 ring-white/10"
                     onError={(e) => {
                       e.currentTarget.onerror = null

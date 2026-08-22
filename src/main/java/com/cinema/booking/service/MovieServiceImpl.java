@@ -9,14 +9,13 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import org.springframework.data.domain.PageImpl;
-
-import java.util.Collections;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -30,67 +29,31 @@ public class MovieServiceImpl implements MovieService {
     private final MovieRepository khoPhim;
     private final GeminiMovieService geminiMovieService;
 
+    /** Sắp xếp phía DB thay vì load toàn bộ rồi sort in-memory. */
+    private Pageable chuanHoaPhanTrang(Pageable phanTrang) {
+        Sort sapXep = Sort.by(Sort.Order.desc("rating"), Sort.Order.desc("releaseDate"), Sort.Order.desc("id"));
+        if (phanTrang == null || phanTrang.isUnpaged()) {
+            return PageRequest.of(0, 8, sapXep);
+        }
+        return PageRequest.of(phanTrang.getPageNumber(), phanTrang.getPageSize(), sapXep);
+    }
+
     public Page<Movie> layDanhSachPhim(String tuKhoa, String trangThai, Pageable phanTrang) {
         MovieStatus trangThaiPhim = trangThai == null || trangThai.isBlank() ? null : MovieStatus.valueOf(trangThai.toUpperCase());
-        List<Movie> tatCaKhop;
-        if (trangThaiPhim != null && tuKhoa != null && !tuKhoa.isBlank())
-            tatCaKhop = khoPhim.timKiemMoRongVaTrangThai(escapeRegex(tuKhoa.trim()), trangThaiPhim, Pageable.unpaged()).getContent();
-        else if (trangThaiPhim != null)
-            tatCaKhop = khoPhim.findByTrangThai(trangThaiPhim, Pageable.unpaged()).getContent();
-        else if (tuKhoa != null && !tuKhoa.isBlank())
-            tatCaKhop = khoPhim.timKiemMoRong(escapeRegex(tuKhoa.trim()), Pageable.unpaged()).getContent();
-        else
-            tatCaKhop = khoPhim.findAll();
+        Pageable page = chuanHoaPhanTrang(phanTrang);
+        String tuKhoaAnToan = tuKhoa != null && !tuKhoa.isBlank() ? escapeRegex(tuKhoa.trim()) : null;
 
-        List<Movie> daSapXep = sapXepUuTienPhim(tatCaKhop);
-
-        if (phanTrang == null || phanTrang.isUnpaged()) {
-            return new PageImpl<>(daSapXep, Pageable.unpaged(), daSapXep.size());
-        }
-
-        int batDau = (int) phanTrang.getOffset();
-        int ketThuc = Math.min(batDau + phanTrang.getPageSize(), daSapXep.size());
-        List<Movie> phanTrangList = batDau >= daSapXep.size()
-                ? Collections.emptyList()
-                : daSapXep.subList(batDau, ketThuc);
-
-        return new PageImpl<>(phanTrangList, phanTrang, daSapXep.size());
-    }
-
-    private List<Movie> sapXepUuTienPhim(List<Movie> danhSach) {
-        if (danhSach == null || danhSach.isEmpty()) return Collections.emptyList();
-        return danhSach.stream()
-                .sorted((a, b) -> {
-                    boolean coTrailerA = coTrailer(a);
-                    boolean coTrailerB = coTrailer(b);
-
-                    // Cấp 1: Phim có trailer lên trước
-                    if (coTrailerA != coTrailerB) {
-                        return coTrailerB ? 1 : -1;
-                    }
-
-                    // Cấp 2: Điểm đánh giá / Rating cao hơn lên trước
-                    double ratingA = a.getRating() != null ? a.getRating() : 0.0;
-                    double ratingB = b.getRating() != null ? b.getRating() : 0.0;
-                    if (Double.compare(ratingB, ratingA) != 0) {
-                        return Double.compare(ratingB, ratingA);
-                    }
-
-                    // Mặc định: ID mới hơn lên trước
-                    String idA = a.getId() != null ? a.getId() : "";
-                    String idB = b.getId() != null ? b.getId() : "";
-                    return idB.compareTo(idA);
-                })
-                .collect(Collectors.toList());
-    }
-
-    private boolean coTrailer(Movie phim) {
-        if (phim == null) return false;
-        String trailer = phim.getTrailerUrl();
-        return trailer != null && !trailer.trim().isEmpty();
+        if (trangThaiPhim != null && tuKhoaAnToan != null)
+            return khoPhim.timKiemMoRongVaTrangThai(tuKhoaAnToan, trangThaiPhim, page);
+        if (trangThaiPhim != null)
+            return khoPhim.findByTrangThai(trangThaiPhim, page);
+        if (tuKhoaAnToan != null)
+            return khoPhim.timKiemMoRong(tuKhoaAnToan, page);
+        return khoPhim.findAllProjected(page);
     }
 
     public Movie layChiTietPhim(String id) { return timPhim(id); }
+
     public Movie themPhimMoi(MovieDto dto) {
         Movie phim = new Movie();
         ganDuLieu(phim, dto);

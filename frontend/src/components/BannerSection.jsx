@@ -1,8 +1,10 @@
 import { ChevronLeft, ChevronRight, Clock, Play, Sparkles, Ticket } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { layDanhSachPhim } from '../services/movieService'
-import { layChiSoLocPhim } from '../services/showtimeService'
+import { KICH_THUOC_TRANG_CHU } from '../services/homeService'
+import { queryKeys } from '../lib/queryClient'
 import { CHI_SO_LOC_RONG, ganMetaPhim, hienThiDoTuoiDayDu } from '../utils/locPhim'
 import { chuanHoaUrlPoster, layUrlPosterPhim, POSTER_MAC_DINH } from '../utils/anhPosterPhim'
 import ModalTrailer from './ModalTrailer'
@@ -11,10 +13,18 @@ import AnhPosterPhim from './AnhPosterPhim'
 const THOI_GIAN_SLIDE = 5000
 const NGUONG_DANH_GIA_CAO = 8
 
+function taoDanhSachBanner(danhSachNguon, chiSo) {
+  return (danhSachNguon || [])
+    .filter((phim) => (phim.status || phim.trangThai || 'SHOWING') === 'SHOWING')
+    .map((phim) => ganMetaPhim(phim, chiSo || CHI_SO_LOC_RONG))
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+    .slice(0, KICH_THUOC_TRANG_CHU)
+}
+
 function PosterBanner3D({ phim }) {
   if (!phim) return null
   const posterUrl = layUrlPosterPhim(phim)
-  const title = phim.title || 'Phim'
+  const title = phim.title || phim.tenPhim || 'Phim'
 
   return (
     <div className="hidden items-center justify-center md:flex lg:justify-end">
@@ -22,38 +32,37 @@ function PosterBanner3D({ phim }) {
         <AnhPosterPhim
           src={posterUrl}
           alt={title}
+          loading="lazy"
           className="h-full w-full object-cover transition-transform duration-700 group-hover/poster:scale-105"
         />
 
-        {/* Lớp phủ sáng bóng kính (Glass Sheen Effect) */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-fuchsia-600/20 via-transparent to-cyan-400/10 opacity-40 transition-opacity duration-500 group-hover/poster:opacity-80" />
       </div>
     </div>
   )
 }
 
-export default function BannerSection() {
-  const [danhSachPhimBanner, datDanhSachPhimBanner] = useState([])
+/** Tái sử dụng data Home (Promise.all) — không fetch size=20 riêng nữa. */
+export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null }) {
   const [indexPhimHienTai, datIndexPhimHienTai] = useState(0)
   const [dangTamDung, datDangTamDung] = useState(false)
   const [moModalTrailer, datMoModalTrailer] = useState(false)
 
-  useEffect(() => {
-    Promise.all([
-      layDanhSachPhim({ trangThai: 'SHOWING', size: 20 }),
-      layChiSoLocPhim().catch(() => CHI_SO_LOC_RONG),
-    ])
-      .then(([duLieu, chiSo]) => {
-        const danhSach = (duLieu.content || duLieu)
-          .filter((phim) => (phim.status || 'SHOWING') === 'SHOWING')
-          .map((phim) => ganMetaPhim(phim, chiSo))
-          .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-          .slice(0, 8)
-        datDanhSachPhimBanner(danhSach)
-      })
-      .catch(() => datDanhSachPhimBanner([]))
-  }, [])
+  const chiSo = chiSoLocPhim || CHI_SO_LOC_RONG
 
+  const canReuseHome = Array.isArray(danhSachPhim) && danhSachPhim.length > 0
+  const { data: phimFallback } = useQuery({
+    queryKey: queryKeys.movies({ trangThai: 'SHOWING', page: 0, size: KICH_THUOC_TRANG_CHU }),
+    queryFn: () => layDanhSachPhim({ trangThai: 'SHOWING', page: 0, size: KICH_THUOC_TRANG_CHU }),
+    enabled: !canReuseHome,
+    staleTime: 60 * 1000,
+  })
+
+  const danhSachPhimBanner = useMemo(() => {
+    if (canReuseHome) return taoDanhSachBanner(danhSachPhim, chiSo)
+    const raw = phimFallback?.content || (Array.isArray(phimFallback) ? phimFallback : [])
+    return taoDanhSachBanner(raw, chiSo)
+  }, [canReuseHome, danhSachPhim, phimFallback, chiSo])
   const chuyenSlide = useCallback((huong) => {
     datIndexPhimHienTai((cu) => {
       const tong = danhSachPhimBanner.length
@@ -94,8 +103,9 @@ export default function BannerSection() {
             >
               <img
                 src={chuanHoaUrlPoster(backdrop) || POSTER_MAC_DINH}
-                alt={phim.title}
+                alt={phim.title || phim.tenPhim || 'Phim'}
                 loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover object-center filter"
                 onError={(e) => {
                   e.currentTarget.onerror = null
@@ -127,11 +137,11 @@ export default function BannerSection() {
       <div className="relative z-20 mx-auto flex h-full max-w-7xl items-center px-4 py-8 sm:px-6 md:py-12 lg:px-8">
         {danhSachPhimBanner.map((phim, index) => {
           const dangHien = index === indexPhimHienTai
-          const title = phim.title || 'Phim'
-          const genres = phim.genres || []
-          const duration = phim.duration
-          const ageRating = phim.ageRating
-          const description = phim.description
+          const title = phim.title || phim.tenPhim || 'Phim'
+          const genres = phim.genres || phim.theLoai || []
+          const duration = phim.duration ?? phim.thoiLuong
+          const ageRating = phim.ageRating || phim.doTuoi
+          const description = phim.description || phim.moTa
 
           return (
             <div
@@ -269,8 +279,8 @@ export default function BannerSection() {
       <ModalTrailer
         mo={moModalTrailer && coTrailer}
         movie={phimHienTai}
-        title={phimHienTai?.title}
-        trailerUrl={phimHienTai?.trailerUrl}
+        title={phimHienTai?.title || phimHienTai?.tenPhim}
+        trailerUrl={phimHienTai?.trailerUrl || phimHienTai?.urlTrailer}
         onDong={() => datMoModalTrailer(false)}
       />
     </section>

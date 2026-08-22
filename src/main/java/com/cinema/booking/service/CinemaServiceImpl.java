@@ -1,5 +1,6 @@
 package com.cinema.booking.service;
 
+import com.cinema.booking.config.CacheConfig;
 import com.cinema.booking.document.Cinema;
 import com.cinema.booking.document.Region;
 import com.cinema.booking.document.Cinema.Room;
@@ -16,6 +17,8 @@ import com.cinema.booking.util.CinemaSeatTemplates;
 import com.cinema.booking.util.ShowtimeSeatMapper;
 import com.cinema.booking.util.TinhGiaVeUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -38,25 +41,27 @@ public class CinemaServiceImpl implements CinemaService {
 
     public List<String> layDanhSachKhuVuc() {
         Stream<String> tuDatabase = khoKhuVuc.findAllByOrderByThuTuAscTenKhuVucAsc().stream().map(Region::getTenKhuVuc);
-        boolean coRapChuaPhan = khoRap.findAll().stream().anyMatch(rap -> rap.getKhuVuc() == null || rap.getKhuVuc().isBlank());
+        boolean coRapChuaPhan = khoRap.findAllProjected().stream().anyMatch(rap -> rap.getKhuVuc() == null || rap.getKhuVuc().isBlank());
         Stream<String> ketQua = coRapChuaPhan ? Stream.concat(tuDatabase, Stream.of(KHU_VUC_CHUA_PHAN)) : tuDatabase;
         return ketQua.distinct().sorted(Comparator.naturalOrder()).toList();
     }
 
+    @Cacheable(cacheNames = CacheConfig.CACHE_CINEMAS, key = "#khuVuc == null || #khuVuc.isBlank() ? 'ALL' : #khuVuc")
     public List<Cinema> layDanhSachRap(String khuVuc) {
-        if (khuVuc == null || khuVuc.isBlank()) return khoRap.findAll();
+        if (khuVuc == null || khuVuc.isBlank()) return khoRap.findAllProjected();
         if (KHU_VUC_CHUA_PHAN.equals(khuVuc)) {
-            return khoRap.findAll().stream()
+            return khoRap.findAllProjected().stream()
                     .filter(rap -> rap.getKhuVuc() == null || rap.getKhuVuc().isBlank())
                     .toList();
         }
-        return khoRap.findByKhuVuc(khuVuc);
+        return khoRap.findByKhuVucProjected(khuVuc);
     }
 
     public Cinema layChiTietRap(String id) {
         return khoRap.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay rap"));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_CINEMAS, allEntries = true)
     public Cinema themRapMoi(CinemaDto dto) {
         return khoRap.save(Cinema.builder()
                 .khuVuc(chuanHoaKhuVuc(dto.getKhuVuc()))
@@ -70,6 +75,7 @@ public class CinemaServiceImpl implements CinemaService {
                 .build());
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_CINEMAS, allEntries = true)
     public Cinema capNhatRap(String id, CinemaDto dto) {
         Cinema rap = layChiTietRap(id);
         if (dto.getKhuVuc() != null) rap.setKhuVuc(chuanHoaKhuVuc(dto.getKhuVuc()));
@@ -92,6 +98,7 @@ public class CinemaServiceImpl implements CinemaService {
                 .toList();
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_CINEMAS, allEntries = true)
     public Room themPhong(String maRap, RoomDto dto) {
         if (dto.getMaPhong() == null || dto.getMaPhong().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ma phong khong hop le");
@@ -117,6 +124,7 @@ public class CinemaServiceImpl implements CinemaService {
         return phongMoi;
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_CINEMAS, allEntries = true)
     public Room capNhatPhong(String maRap, String maPhong, RoomDto dto) {
         Cinema rap = layChiTietRap(maRap);
         Room phong = timPhongTrongRap(rap, maPhong);
@@ -139,6 +147,7 @@ public class CinemaServiceImpl implements CinemaService {
         return chuanHoaDanhSachGhe(CinemaSeatTemplates.layMauTheoMa(dto.getMauSoDoGhe()));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_CINEMAS, allEntries = true)
     public void xoaPhong(String maRap, String maPhong) {
         Cinema rap = layChiTietRap(maRap);
         List<Room> danhSachPhong = rap.getDanhSachPhong();

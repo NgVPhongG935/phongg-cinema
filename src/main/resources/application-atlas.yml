@@ -5,5 +5,5 @@ spring:
       - de.flapdoodle.embed.mongo.spring.autoconfigure.EmbeddedMongoAutoConfiguration
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb+srv://phong93055_db_user:ncs00305@cluster0.bjj651r.mongodb.net/cinema-db?retryWrites=true&w=majority}
+      uri: ${MONGODB_URI:mongodb+srv://phong93055_db_user:ncs00305@cluster0.bjj651r.mongodb.net/cinema-db?retryWrites=true&w=majority&maxPoolSize=10&minPoolSize=0&maxIdleTimeMS=30000&waitQueueTimeoutMS=5000}
       auto-index-creation: true

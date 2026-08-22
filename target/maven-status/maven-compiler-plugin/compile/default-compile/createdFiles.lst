@@ -195,6 +195,7 @@ com\cinema\booking\dto\MovieReviewSummaryDto$MovieReviewSummaryDtoBuilder.class
 com\cinema\booking\service\BackupServiceImpl$8.class
 com\cinema\booking\controller\AdminDashboardController.class
 com\cinema\booking\repository\MovieReviewRepository.class
+com\cinema\booking\config\CacheConfig.class
 com\cinema\booking\service\VnPayService.class
 com\cinema\booking\repository\MovieReviewReplyRepository.class
 com\cinema\booking\service\UserServiceImpl.class

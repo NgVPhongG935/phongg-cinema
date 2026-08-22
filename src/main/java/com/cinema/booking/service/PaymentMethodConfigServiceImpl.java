@@ -1,11 +1,14 @@
 package com.cinema.booking.service;
 
+import com.cinema.booking.config.CacheConfig;
 import com.cinema.booking.document.PaymentMethodConfig;
 import com.cinema.booking.dto.PaymentMethodConfigDto;
 import com.cinema.booking.dto.PaymentMethodConfigResponseDto;
 import com.cinema.booking.repository.PaymentMethodConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,6 +31,7 @@ public class PaymentMethodConfigServiceImpl implements PaymentMethodConfigServic
     private String backendUrl;
 
     @Override
+    @Cacheable(cacheNames = CacheConfig.CACHE_PAYMENT_METHODS, key = "'active'")
     public List<PaymentMethodConfigResponseDto> layDanhSachKichHoat() {
         napMacDinhNeuCan();
         return khoCauHinh.findAllByKichHoatTrueOrderByThuTuAsc().stream().map(this::chuyenDto).toList();
@@ -40,6 +44,7 @@ public class PaymentMethodConfigServiceImpl implements PaymentMethodConfigServic
     }
 
     @Override
+    @CacheEvict(cacheNames = CacheConfig.CACHE_PAYMENT_METHODS, allEntries = true)
     public PaymentMethodConfigResponseDto them(PaymentMethodConfigDto dto) {
         if (dto.getMa() == null || dto.getMa().isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thieu ma hinh thuc");
@@ -64,6 +69,7 @@ public class PaymentMethodConfigServiceImpl implements PaymentMethodConfigServic
     }
 
     @Override
+    @CacheEvict(cacheNames = CacheConfig.CACHE_PAYMENT_METHODS, allEntries = true)
     public PaymentMethodConfigResponseDto capNhat(String ma, PaymentMethodConfigDto dto) {
         PaymentMethodConfig muc = khoCauHinh.findById(ma)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay hinh thuc thanh toan"));
@@ -82,6 +88,7 @@ public class PaymentMethodConfigServiceImpl implements PaymentMethodConfigServic
     }
 
     @Override
+    @CacheEvict(cacheNames = CacheConfig.CACHE_PAYMENT_METHODS, allEntries = true)
     public void xoa(String ma) {
         if (!khoCauHinh.existsById(ma))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay hinh thuc thanh toan");
@@ -95,6 +102,7 @@ public class PaymentMethodConfigServiceImpl implements PaymentMethodConfigServic
     }
 
     @Override
+    @CacheEvict(cacheNames = CacheConfig.CACHE_PAYMENT_METHODS, allEntries = true)
     public PaymentMethodConfigResponseDto uploadQr(String ma, byte[] noiDung, String contentType) {
         if (noiDung == null || noiDung.length == 0)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File QR rong");

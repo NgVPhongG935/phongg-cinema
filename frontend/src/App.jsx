@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { useEffect } from 'react'
 import Navbar from './components/Navbar'
 import NenDong from './components/NenDong'
 import Footer from './components/Footer'
 import AuthModal from './components/AuthModal'
 import AiChatModal from './components/AiChatModal'
 import { ViTriRapProvider } from './context/ViTriRapContext'
+import { useHinhThucThanhToan } from './hooks/useCatalogQueries'
 import HomePage from './pages/HomePage'
 import MovieDetailPage from './pages/MovieDetailPage'
 import SeatBookingPage from './pages/SeatBookingPage'
@@ -33,14 +33,38 @@ import ManageTicketsPage from './pages/admin/ManageTicketsPage'
 import ManagePaymentConfigPage from './pages/admin/ManagePaymentConfigPage'
 import ScanQrPage from './pages/staff/ScanQrPage'
 import BookingSuccessPage from './pages/BookingSuccessPage'
-import { layDanhSachHinhThucThanhToan } from './services/paymentMethodService'
-import { datCacheHinhThuc } from './utils/hinhThucThanhToan'
+
+function PrefetchCatalog() {
+  useHinhThucThanhToan()
+  return null
+}
 
 function PublicLayout() {
-  useEffect(() => {
-    layDanhSachHinhThucThanhToan().then(datCacheHinhThuc).catch(() => {})
-  }, [])
-  return <ViTriRapProvider><NenDong /><Navbar /><main className="relative min-h-[75vh]"><Routes><Route path="/" element={<HomePage />} /><Route path="/movies/:id" element={<MovieDetailPage />} /><Route path="/movies/:id/schedule" element={<ShowtimeSchedulePage />} /><Route path="/booking/:id" element={<SeatBookingPage />} /><Route path="/booking/:id/combo" element={<ComboFoodPage />} /><Route path="/booking/:id/payment" element={<PaymentPage />} /><Route path="/booking/success/:id" element={<BookingSuccessPage />} /><Route path="/payment/result" element={<PaymentResultPage />} /><Route path="/my-tickets" element={<MyTicketsPage />} /><Route path="/profile" element={<ProfilePage />} /><Route path="/login" element={<LoginPage />} /></Routes></main><Footer /><AuthModal /><AiChatModal /></ViTriRapProvider>
+  return (
+    <ViTriRapProvider>
+      <PrefetchCatalog />
+      <NenDong />
+      <Navbar />
+      <main className="relative min-h-[75vh]">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/movies/:id" element={<MovieDetailPage />} />
+          <Route path="/movies/:id/schedule" element={<ShowtimeSchedulePage />} />
+          <Route path="/booking/:id" element={<SeatBookingPage />} />
+          <Route path="/booking/:id/combo" element={<ComboFoodPage />} />
+          <Route path="/booking/:id/payment" element={<PaymentPage />} />
+          <Route path="/booking/success/:id" element={<BookingSuccessPage />} />
+          <Route path="/payment/result" element={<PaymentResultPage />} />
+          <Route path="/my-tickets" element={<MyTicketsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </main>
+      <Footer />
+      <AuthModal />
+      <AiChatModal />
+    </ViTriRapProvider>
+  )
 }
 export default function App() {
   return (

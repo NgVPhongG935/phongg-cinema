@@ -1,6 +1,6 @@
 import { Loader2, MapPin, Navigation, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { layDanhSachKhuVuc } from '../services/regionService'
+import { useState } from 'react'
+import { useDanhSachKhuVuc } from '../hooks/useCatalogQueries'
 import { useViTriRap } from '../context/ViTriRapContext'
 import { dinhDangKhoangCach } from '../utils/viTriRap'
 
@@ -9,12 +9,8 @@ export default function ChonViTriRap({ compact = false }) {
     cheDo, viTri, khuVuc, dangTaiGps, thongBao, coViTri,
     layViTriGps, chonKhuVuc, xoaViTri,
   } = useViTriRap()
-  const [danhSachKhuVuc, datDanhSachKhuVuc] = useState([])
+  const { data: danhSachKhuVuc = [] } = useDanhSachKhuVuc()
   const [moChonKhuVuc, datMoChonKhuVuc] = useState(false)
-
-  useEffect(() => {
-    layDanhSachKhuVuc().then(datDanhSachKhuVuc).catch(() => datDanhSachKhuVuc([]))
-  }, [])
 
   const moTaViTri = () => {
     if (cheDo === 'gps' && viTri?.viDo) return 'Đang dùng vị trí GPS của bạn'

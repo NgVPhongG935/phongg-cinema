@@ -29,6 +29,7 @@ public class Showtime {
     @JsonAlias({"maPhim"})
     private String movieId;
 
+    @Indexed
     @JsonAlias({"maRap"})
     private String cinemaId;
 

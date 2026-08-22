@@ -1,6 +1,7 @@
 D:\QLBVXP\src\main\java\com\cinema\booking\CinemaBookingApplication.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\ApiExceptionHandler.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\BoLocJwt.java
+D:\QLBVXP\src\main\java\com\cinema\booking\config\CacheConfig.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\CinemaSeedDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\DataInitializer.java
 D:\QLBVXP\src\main\java\com\cinema\booking\config\GeminiStartupLogger.java
