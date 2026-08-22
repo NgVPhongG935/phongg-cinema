@@ -12,12 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -27,11 +22,6 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder boMaHoaMatKhau;
     private final JwtUtil congCuJwt;
     private final GoogleTokenXacThuc xacThucGoogle;
-    private final EmailService emailService;
-
-    // Bộ nhớ đệm tạm thời lưu thông tin đăng ký và mã OTP (TTL: 5 phút = 300s)
-    private final Map<String, OtpRegistrationData> otpCache = new ConcurrentHashMap<>();
-    private final SecureRandom random = new SecureRandom();
 
     @Override
     public AuthResponse dangNhap(DangNhapRequest yeuCau) {
@@ -48,135 +38,37 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse dangKy(DangKyRequest yeuCau) {
-        if (khoNguoiDung.findByEmail(yeuCau.getEmail()).isPresent())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email đã được sử dụng");
-        User nguoiDungMoi = User.builder()
-                .email(yeuCau.getEmail())
-                .matKhau(boMaHoaMatKhau.encode(yeuCau.getMatKhau()))
-                .hoTen(yeuCau.getHoTen())
-                .vaiTro(UserRole.CUSTOMER)
-                .build();
-        return taoPhanHoi(khoNguoiDung.save(nguoiDungMoi));
-    }
-
-    @Override
-    public Map<String, Object> registerSendOtp(RegisterSendOtpRequest yeuCau) {
         String email = yeuCau.getEmail() != null ? yeuCau.getEmail().trim().toLowerCase(java.util.Locale.ROOT) : "";
         if (email.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email không được để trống");
         }
-
-        String matKhau = yeuCau.getPassword() != null ? yeuCau.getPassword() : yeuCau.getMatKhau();
-        if (matKhau == null || matKhau.length() < 6) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu phải có ít nhất 6 ký tự");
-        }
-
-        String hoTen = yeuCau.getFullName() != null ? yeuCau.getFullName().trim() : yeuCau.getHoTen();
-        if (hoTen == null || hoTen.isBlank()) {
+        String hoTen = yeuCau.layHoTen();
+        if (hoTen.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Họ và tên không được để trống");
         }
-
-        // 1. Kiểm tra trùng email
-        if (khoNguoiDung.existsByEmail(email)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email này đã được đăng ký tài khoản. Vui lòng đăng nhập hoặc dùng email khác!");
+        String matKhau = yeuCau.layMatKhau();
+        if (matKhau.length() < 6) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu phải có ít nhất 6 ký tự");
+        }
+        if (khoNguoiDung.findByEmail(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email này đã được sử dụng");
+        }
+        String soDienThoai = yeuCau.laySoDienThoai();
+        if (soDienThoai != null && khoNguoiDung.existsBySoDienThoai(soDienThoai)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại này đã được sử dụng");
         }
 
-        // 2. Kiểm tra trùng số điện thoại (nếu có nhập)
-        String phone = yeuCau.getPhone() != null ? yeuCau.getPhone().trim() : yeuCau.getSoDienThoai();
-        if (phone != null && !phone.isBlank()) {
-            phone = phone.trim();
-            if (khoNguoiDung.existsBySoDienThoai(phone)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại này đã được sử dụng!");
-            }
-        }
-
-        // Sinh mã OTP ngẫu nhiên 6 chữ số
-        String otp = String.format("%06d", random.nextInt(1000000));
-        Instant now = Instant.now();
-        Instant expiresAt = now.plus(5, ChronoUnit.MINUTES);
-
-        // Lưu thông tin đăng ký vào cache
-        OtpRegistrationData data = OtpRegistrationData.builder()
-                .email(email)
-                .fullName(hoTen)
-                .passwordEncoded(boMaHoaMatKhau.encode(matKhau))
-                .phone(phone != null && !phone.isBlank() ? phone : null)
-                .otp(otp)
-                .createdAt(now)
-                .expiresAt(expiresAt)
-                .build();
-
-        otpCache.put(email, data);
-        log.info("Đã lưu cache OTP đăng ký cho email {}. Mã OTP: {}", email, otp);
-
-        try {
-            emailService.guiEmailOtp(email, hoTen, otp);
-        } catch (Exception e) {
-            log.error("❌ Không thể gửi email qua SMTP: {}. Fallback OTP cho email [{}]: [ {} ]", e.getMessage(), email, otp);
-        }
-
-        return Map.of(
-                "success", true,
-                "message", "Mã OTP xác thực đã được gửi đến email " + email,
-                "email", email,
-                "expiresInSeconds", 300
-        );
-    }
-
-    @Override
-    public AuthResponse verifyRegisterOtp(VerifyRegisterOtpRequest yeuCau) {
-        String email = yeuCau.getEmail() != null ? yeuCau.getEmail().trim().toLowerCase(java.util.Locale.ROOT) : "";
-        String otp = yeuCau.getOtp() != null ? yeuCau.getOtp().trim() : "";
-
-        if (email.isBlank() || otp.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email và mã OTP không được để trống");
-        }
-
-        OtpRegistrationData data = otpCache.get(email);
-        if (data == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP không tồn tại hoặc đã hết hạn. Vui lòng gửi lại mã OTP mới.");
-        }
-
-        if (Instant.now().isAfter(data.getExpiresAt())) {
-            otpCache.remove(email);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn (quá 5 phút). Vui lòng gửi lại mã OTP mới.");
-        }
-
-        if (!data.getOtp().equals(otp)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP không chính xác. Vui lòng kiểm tra lại.");
-        }
-
-        // Kiểm tra lại trước khi lưu để chống race condition
-        if (khoNguoiDung.existsByEmail(email)) {
-            otpCache.remove(email);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email này đã được đăng ký tài khoản. Vui lòng đăng nhập!");
-        }
-
-        if (data.getPhone() != null && !data.getPhone().isBlank() && khoNguoiDung.existsBySoDienThoai(data.getPhone())) {
-            otpCache.remove(email);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại này đã được sử dụng!");
-        }
-
-        // Tạo tài khoản chính thức vào MongoDB
         User nguoiDungMoi = User.builder()
-                .email(data.getEmail())
-                .hoTen(data.getFullName())
-                .matKhau(data.getPasswordEncoded())
-                .soDienThoai(data.getPhone())
+                .email(email)
+                .matKhau(boMaHoaMatKhau.encode(matKhau))
+                .hoTen(hoTen)
+                .soDienThoai(soDienThoai)
                 .vaiTro(UserRole.CUSTOMER)
                 .biKhoa(false)
                 .build();
-
-        try {
-            User savedUser = khoNguoiDung.save(nguoiDungMoi);
-            otpCache.remove(email);
-            log.info("Xác thực OTP thành công! Đã tạo tài khoản cho: {}", email);
-            return taoPhanHoi(savedUser);
-        } catch (org.springframework.dao.DuplicateKeyException | com.mongodb.DuplicateKeyException e) {
-            otpCache.remove(email);
-            log.warn("Lỗi trùng lặp khóa khi lưu tài khoản {}: {}", email, e.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email hoặc số điện thoại này đã được sử dụng trong hệ thống.");
-        }
+        User daLuu = khoNguoiDung.save(nguoiDungMoi);
+        log.info("Đăng ký tài khoản thành công cho: {} (ID: {})", daLuu.getEmail(), daLuu.getId());
+        return taoPhanHoi(daLuu);
     }
 
     @Override

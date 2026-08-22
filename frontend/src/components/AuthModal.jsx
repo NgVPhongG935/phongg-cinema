@@ -1,10 +1,9 @@
-import { Film, LogIn, Mail, Phone, ShieldCheck, User as UserIcon, X } from 'lucide-react'
+import { Film, LogIn, Mail, Phone, UserCheck, User as UserIcon, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NutDangNhapGoogle from './NutDangNhapGoogle'
-import FormNhapOtp from './FormNhapOtp'
 import { useAuth } from '../context/AuthContext'
-import { dangNhap, guiOtpDangKy, xacThucOtpDangKy } from '../services/authService'
+import { dangNhap, dangKy } from '../services/authService'
 import { layThongBaoLoiAuth } from '../utils/layThongBaoLoiApi'
 import { layDuongDanSauDangNhap } from '../utils/dieuHuongSauDangNhap'
 
@@ -12,7 +11,6 @@ export default function AuthModal() {
   const dieuHuong = useNavigate()
   const [dangMo, datDangMo] = useState(false)
   const [laDangKy, datLaDangKy] = useState(false)
-  const [buoc, datBuoc] = useState('FORM') // 'FORM' hoặc 'OTP'
   const [duLieu, datDuLieu] = useState({
     email: '',
     matKhau: '',
@@ -21,7 +19,6 @@ export default function AuthModal() {
     soDienThoai: '',
   })
   const [loi, datLoi] = useState('')
-  const [thongBao, datThongBao] = useState('')
   const [dangXuLy, datDangXuLy] = useState(false)
   const { capNhatNguoiDung } = useAuth()
 
@@ -29,8 +26,6 @@ export default function AuthModal() {
     const moModal = () => {
       datDangMo(true)
       datLoi('')
-      datThongBao('')
-      datBuoc('FORM')
     }
     window.addEventListener('open-auth-modal', moModal)
     return () => window.removeEventListener('open-auth-modal', moModal)
@@ -39,8 +34,6 @@ export default function AuthModal() {
   const dongModal = () => {
     datDangMo(false)
     datLoi('')
-    datThongBao('')
-    datBuoc('FORM')
     datDuLieu({ email: '', matKhau: '', xacNhanMatKhau: '', hoTen: '', soDienThoai: '' })
   }
 
@@ -56,7 +49,7 @@ export default function AuthModal() {
     dieuHuong(layDuongDanSauDangNhap(phanHoi.role))
   }
 
-  // 1. Đăng nhập truyền thống
+  // 1. Đăng nhập
   const xuLyDangNhap = async (suKien) => {
     suKien.preventDefault()
     datLoi('')
@@ -71,11 +64,10 @@ export default function AuthModal() {
     }
   }
 
-  // 2. Bước 1 đăng ký: Gửi mã OTP
-  const xuLyGuiOtpDangKy = async (suKien) => {
+  // 2. Đăng ký trực tiếp (Không cần OTP)
+  const xuLyDangKy = async (suKien) => {
     suKien.preventDefault()
     datLoi('')
-    datThongBao('')
 
     if (duLieu.matKhau.length < 6) {
       datLoi('Mật khẩu phải có ít nhất 6 ký tự')
@@ -89,53 +81,17 @@ export default function AuthModal() {
 
     datDangXuLy(true)
     try {
-      const phanHoi = await guiOtpDangKy({
-        fullName: duLieu.hoTen,
+      const phanHoi = await dangKy({
+        hoTen: duLieu.hoTen,
         email: duLieu.email,
-        password: duLieu.matKhau,
-        phone: duLieu.soDienThoai,
-      })
-      datThongBao(phanHoi.message || 'Mã OTP đã được gửi đến email của bạn.')
-      datBuoc('OTP')
-    } catch (loiPhanHoi) {
-      datLoi(layThongBaoLoiAuth(loiPhanHoi, 'Gửi mã OTP không thành công'))
-    } finally {
-      datDangXuLy(false)
-    }
-  }
-
-  // 3. Bước 2 đăng ký: Xác thực mã OTP
-  const xuLyXacThucOtp = async (otp) => {
-    datLoi('')
-    datDangXuLy(true)
-    try {
-      const phanHoi = await xacThucOtpDangKy({
-        email: duLieu.email,
-        otp: otp,
+        matKhau: duLieu.matKhau,
+        soDienThoai: duLieu.soDienThoai,
       })
       luuPhienDangNhap(phanHoi)
     } catch (loiPhanHoi) {
-      datLoi(layThongBaoLoiAuth(loiPhanHoi, 'Mã OTP không chính xác hoặc đã hết hạn'))
+      datLoi(layThongBaoLoiAuth(loiPhanHoi, 'Đăng ký không thành công'))
     } finally {
       datDangXuLy(false)
-    }
-  }
-
-  // Gửi lại mã OTP
-  const xuLyGuiLaiOtp = async () => {
-    datLoi('')
-    datThongBao('')
-    try {
-      const phanHoi = await guiOtpDangKy({
-        fullName: duLieu.hoTen,
-        email: duLieu.email,
-        password: duLieu.matKhau,
-        phone: duLieu.soDienThoai,
-      })
-      datThongBao(phanHoi.message || 'Đã gửi lại mã OTP mới về email!')
-    } catch (loiPhanHoi) {
-      datLoi(layThongBaoLoiAuth(loiPhanHoi, 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.'))
-      throw loiPhanHoi
     }
   }
 
@@ -151,177 +107,156 @@ export default function AuthModal() {
           <X size={20} />
         </button>
 
-        {buoc === 'OTP' ? (
-          <FormNhapOtp
-            email={duLieu.email}
-            onXacThuc={xuLyXacThucOtp}
-            onGuiLai={xuLyGuiLaiOtp}
-            onQuayLai={() => {
-              datBuoc('FORM')
-              datLoi('')
-              datThongBao('')
-            }}
-            dangXuLy={dangXuLy}
-            loi={loi}
-            thongBao={thongBao}
-          />
-        ) : (
-          <>
-            <div className="mb-6 flex items-center gap-3">
-              <span className="rounded-2xl bg-gradient-to-tr from-purple-600 to-fuchsia-600 p-3 text-white shadow-lg shadow-purple-500/20">
-                <Film size={22} />
-              </span>
-              <div>
-                <h2 className="text-2xl font-black text-white">
-                  {laDangKy ? 'Đăng ký tài khoản' : 'Đăng nhập'}
-                </h2>
-                <p className="text-sm text-slate-400">PhongG Cinema đang chờ bạn</p>
-              </div>
-            </div>
+        <div className="mb-6 flex items-center gap-3">
+          <span className="rounded-2xl bg-gradient-to-tr from-purple-600 to-fuchsia-600 p-3 text-white shadow-lg shadow-purple-500/20">
+            <Film size={22} />
+          </span>
+          <div>
+            <h2 className="text-2xl font-black text-white">
+              {laDangKy ? 'Đăng ký tài khoản' : 'Đăng nhập'}
+            </h2>
+            <p className="text-sm text-slate-400">PhongG Cinema đang chờ bạn</p>
+          </div>
+        </div>
 
-            <form onSubmit={laDangKy ? xuLyGuiOtpDangKy : xuLyDangNhap} className="space-y-3.5">
-              {laDangKy && (
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-300">Họ và tên</label>
-                  <div className="relative">
-                    <input
-                      className="o-nhap w-full pl-10"
-                      name="hoTen"
-                      value={duLieu.hoTen}
-                      onChange={xuLyThayDoi}
-                      placeholder="Nguyễn Văn A"
-                      required
-                    />
-                    <UserIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-300">Email</label>
-                <div className="relative">
-                  <input
-                    className="o-nhap w-full pl-10"
-                    name="email"
-                    type="email"
-                    value={duLieu.email}
-                    onChange={xuLyThayDoi}
-                    placeholder="example@gmail.com"
-                    required
-                  />
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-
-              {laDangKy && (
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-300">
-                    Số điện thoại <span className="text-slate-500 font-normal">(không bắt buộc)</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      className="o-nhap w-full pl-10"
-                      name="soDienThoai"
-                      type="tel"
-                      value={duLieu.soDienThoai}
-                      onChange={xuLyThayDoi}
-                      placeholder="0987 654 321"
-                    />
-                    <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-300">Mật khẩu</label>
+        <form onSubmit={laDangKy ? xuLyDangKy : xuLyDangNhap} className="space-y-3.5">
+          {laDangKy && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-300">Họ và tên</label>
+              <div className="relative">
                 <input
-                  className="o-nhap w-full"
-                  name="matKhau"
-                  type="password"
-                  value={duLieu.matKhau}
+                  className="o-nhap w-full pl-10"
+                  name="hoTen"
+                  value={duLieu.hoTen}
                   onChange={xuLyThayDoi}
-                  placeholder="Tối thiểu 6 ký tự"
+                  placeholder="Nguyễn Văn A"
                   required
                 />
+                <UserIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
+            </div>
+          )}
 
-              {laDangKy && (
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-300">Xác nhận mật khẩu</label>
-                  <input
-                    className="o-nhap w-full"
-                    name="xacNhanMatKhau"
-                    type="password"
-                    value={duLieu.xacNhanMatKhau}
-                    onChange={xuLyThayDoi}
-                    placeholder="Nhập lại mật khẩu"
-                    required
-                  />
-                </div>
-              )}
-
-              {loi && (
-                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-center text-xs text-rose-300">
-                  <p className="font-semibold">{loi}</p>
-                  {laDangKy && (loi.includes('đăng ký') || loi.includes('đã được sử dụng') || loi.includes('Email này')) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        datLaDangKy(false)
-                        datLoi('')
-                      }}
-                      className="mt-1.5 text-xs text-fuchsia-300 font-semibold underline hover:text-white transition-colors"
-                    >
-                      Chuyển sang Đăng nhập ngay
-                    </button>
-                  )}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={dangXuLy}
-                className="nut-chinh mt-4 flex w-full justify-center items-center gap-2 py-3 text-base font-bold shadow-lg shadow-purple-600/30 disabled:opacity-50"
-              >
-                {laDangKy ? (
-                  <>
-                    <ShieldCheck size={18} />
-                    {dangXuLy ? 'Đang gửi mã xác thực...' : 'Đăng Ký'}
-                  </>
-                ) : (
-                  <>
-                    <LogIn size={18} />
-                    {dangXuLy ? 'Đang đăng nhập...' : 'Đăng nhập'}
-                  </>
-                )}
-              </button>
-            </form>
-
-            {!laDangKy && (
-              <NutDangNhapGoogle
-                onThanhCong={luuPhienDangNhap}
-                onLoi={datLoi}
-                dangXuLy={dangXuLy}
-                datDangXuLy={datDangXuLy}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-300">Email</label>
+            <div className="relative">
+              <input
+                className="o-nhap w-full pl-10"
+                name="email"
+                type="email"
+                value={duLieu.email}
+                onChange={xuLyThayDoi}
+                placeholder="example@gmail.com"
+                required
               />
-            )}
+              <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            </div>
+          </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                datLaDangKy((cu) => !cu)
-                datBuoc('FORM')
-                datLoi('')
-                datThongBao('')
-              }}
-              className="mt-5 w-full text-center text-sm text-fuchsia-400 hover:text-fuchsia-300 transition-colors"
-            >
-              {laDangKy ? 'Đã có tài khoản? Đăng nhập ngay' : 'Chưa có tài khoản? Đăng ký ngay'}
-            </button>
-          </>
+          {laDangKy && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-300">
+                Số điện thoại <span className="text-slate-500 font-normal">(không bắt buộc)</span>
+              </label>
+              <div className="relative">
+                <input
+                  className="o-nhap w-full pl-10"
+                  name="soDienThoai"
+                  type="tel"
+                  value={duLieu.soDienThoai}
+                  onChange={xuLyThayDoi}
+                  placeholder="0987 654 321"
+                />
+                <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-300">Mật khẩu</label>
+            <input
+              className="o-nhap w-full"
+              name="matKhau"
+              type="password"
+              value={duLieu.matKhau}
+              onChange={xuLyThayDoi}
+              placeholder="Tối thiểu 6 ký tự"
+              required
+            />
+          </div>
+
+          {laDangKy && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-300">Xác nhận mật khẩu</label>
+              <input
+                className="o-nhap w-full"
+                name="xacNhanMatKhau"
+                type="password"
+                value={duLieu.xacNhanMatKhau}
+                onChange={xuLyThayDoi}
+                placeholder="Nhập lại mật khẩu"
+                required
+              />
+            </div>
+          )}
+
+          {loi && (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-center text-xs text-rose-300">
+              <p className="font-semibold">{loi}</p>
+              {laDangKy && (loi.includes('đăng ký') || loi.includes('đã được sử dụng') || loi.includes('Email này')) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    datLaDangKy(false)
+                    datLoi('')
+                  }}
+                  className="mt-1.5 text-xs text-fuchsia-300 font-semibold underline hover:text-white transition-colors"
+                >
+                  Chuyển sang Đăng nhập ngay
+                </button>
+              )}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={dangXuLy}
+            className="nut-chinh mt-4 flex w-full justify-center items-center gap-2 py-3 text-base font-bold shadow-lg shadow-purple-600/30 disabled:opacity-50"
+          >
+            {laDangKy ? (
+              <>
+                <UserCheck size={18} />
+                {dangXuLy ? 'Đang tạo tài khoản...' : 'Đăng ký ngay'}
+              </>
+            ) : (
+              <>
+                <LogIn size={18} />
+                {dangXuLy ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              </>
+            )}
+          </button>
+        </form>
+
+        {!laDangKy && (
+          <NutDangNhapGoogle
+            onThanhCong={luuPhienDangNhap}
+            onLoi={datLoi}
+            dangXuLy={dangXuLy}
+            datDangXuLy={datDangXuLy}
+          />
         )}
+
+        <button
+          type="button"
+          onClick={() => {
+            datLaDangKy((cu) => !cu)
+            datLoi('')
+          }}
+          className="mt-5 w-full text-center text-sm text-fuchsia-400 hover:text-fuchsia-300 transition-colors"
+        >
+          {laDangKy ? 'Đã có tài khoản? Đăng nhập ngay' : 'Chưa có tài khoản? Đăng ký ngay'}
+        </button>
       </div>
     </div>
   )
 }
-

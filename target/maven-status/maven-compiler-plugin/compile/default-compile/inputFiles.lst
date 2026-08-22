@@ -88,7 +88,6 @@ D:\QLBVXP\src\main\java\com\cinema\booking\dto\MovieReviewDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\MovieReviewReplyDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\MovieReviewSummaryDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\NgauCanhChatAi.java
-D:\QLBVXP\src\main\java\com\cinema\booking\dto\OtpRegistrationData.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\PaymentCallbackRequest.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\PaymentConfigDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\PaymentConfigResponseDto.java
@@ -99,7 +98,6 @@ D:\QLBVXP\src\main\java\com\cinema\booking\dto\PaymentUrlResponse.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\PersonAiResponseDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\PhimSuatHomNayDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\RegionDto.java
-D:\QLBVXP\src\main\java\com\cinema\booking\dto\RegisterSendOtpRequest.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\RoomDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\RoomSeatLayoutDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\SeedResultDto.java
@@ -127,7 +125,6 @@ D:\QLBVXP\src\main\java\com\cinema\booking\dto\ThongTinPhimAiDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\TicketResponseDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\UploadResponseDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\UserResponseDto.java
-D:\QLBVXP\src\main\java\com\cinema\booking\dto\VerifyRegisterOtpRequest.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\VoucherDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\dto\VoucherResponseDto.java
 D:\QLBVXP\src\main\java\com\cinema\booking\repository\CinemaRepository.java

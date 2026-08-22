@@ -23,7 +23,6 @@ com\cinema\booking\dto\PaymentUrlResponse$PaymentUrlResponseBuilder.class
 com\cinema\booking\service\PaymentMethodConfigService.class
 com\cinema\booking\dto\MovieReviewReplyDto.class
 com\cinema\booking\config\DataInitializer$6.class
-com\cinema\booking\dto\VerifyRegisterOtpRequest.class
 com\cinema\booking\dto\AdminDashboardItemDto$AdminDashboardItemDtoBuilder.class
 com\cinema\booking\dto\ShowtimeAiSlotDto.class
 com\cinema\booking\dto\ShowtimeAiGenerateRequestDto.class
@@ -42,6 +41,7 @@ com\cinema\booking\repository\RegionRepository.class
 com\cinema\booking\dto\AdminDashboardPaymentDto$AdminDashboardPaymentDtoBuilder.class
 com\cinema\booking\dto\PaymentUrlResponse.class
 com\cinema\booking\dto\StaffResponseDto$StaffResponseDtoBuilder.class
+com\cinema\booking\dto\DangKyRequest$DangKyRequestBuilder.class
 com\cinema\booking\service\PersonService.class
 com\cinema\booking\controller\AdminSeedController.class
 com\cinema\booking\controller\UploadController.class
@@ -71,8 +71,6 @@ com\cinema\booking\config\MovieCastSeedDto.class
 com\cinema\booking\controller\AuthController.class
 com\cinema\booking\dto\ShowtimeAutoSeedRequestDto.class
 com\cinema\booking\dto\MovieReviewSummaryDto.class
-com\cinema\booking\dto\RegisterSendOtpRequest$RegisterSendOtpRequestBuilder.class
-com\cinema\booking\dto\OtpRegistrationData.class
 com\cinema\booking\dto\ShowtimeSlotPreviewDto.class
 com\cinema\booking\dto\MovieReviewReplyDto$MovieReviewReplyDtoBuilder.class
 com\cinema\booking\dto\ComboItemDto.class
@@ -80,7 +78,6 @@ com\cinema\booking\service\PaymentConfigServiceImpl.class
 com\cinema\booking\repository\PaymentMethodConfigRepository.class
 com\cinema\booking\service\MovieReviewService.class
 com\cinema\booking\util\MaVeQrUtil.class
-com\cinema\booking\dto\RegisterSendOtpRequest.class
 com\cinema\booking\service\ComboService.class
 com\cinema\booking\document\PaymentMethodConfig.class
 com\cinema\booking\dto\AdminDashboardPaymentDto.class
@@ -185,7 +182,6 @@ com\cinema\booking\util\CinemaSeatTemplates.class
 com\cinema\booking\document\Combo$ComboBuilder.class
 com\cinema\booking\dto\AdminDashboardChartDto.class
 com\cinema\booking\dto\ShowtimeFilterIndexDto$ShowtimeFilterIndexDtoBuilder.class
-com\cinema\booking\dto\OtpRegistrationData$OtpRegistrationDataBuilder.class
 com\cinema\booking\dto\SeedResultDto$SeedResultDtoBuilder.class
 com\cinema\booking\dto\ShowtimeSlotDto.class
 com\cinema\booking\service\DashboardServiceImpl.class
@@ -222,7 +218,6 @@ com\cinema\booking\dto\TicketResponseDto.class
 com\cinema\booking\controller\PersonAdminController.class
 com\cinema\booking\service\BackupServiceImpl$7.class
 com\cinema\booking\service\ComboServiceImpl.class
-com\cinema\booking\dto\VerifyRegisterOtpRequest$VerifyRegisterOtpRequestBuilder.class
 com\cinema\booking\config\DataInitializer$1.class
 com\cinema\booking\dto\TaoMovieReviewReplyRequest.class
 com\cinema\booking\service\BackupServiceImpl$10.class

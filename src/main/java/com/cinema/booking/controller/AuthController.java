@@ -9,8 +9,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Map;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
@@ -25,18 +23,6 @@ public class AuthController {
     @PostMapping("/register")
     public AuthResponse dangKy(@RequestBody DangKyRequest yeuCau) {
         return dichVuXacThuc.dangKy(yeuCau);
-    }
-
-    // 1. API Gửi mã OTP xác thực đăng ký
-    @PostMapping({"/register/send-otp", "/register-send-otp"})
-    public Map<String, Object> registerSendOtp(@RequestBody RegisterSendOtpRequest yeuCau) {
-        return dichVuXacThuc.registerSendOtp(yeuCau);
-    }
-
-    // 2. API Xác thực mã OTP và hoàn tất tạo tài khoản
-    @PostMapping({"/register/verify-otp", "/verify-register-otp"})
-    public AuthResponse verifyRegisterOtp(@RequestBody VerifyRegisterOtpRequest yeuCau) {
-        return dichVuXacThuc.verifyRegisterOtp(yeuCau);
     }
 
     @PostMapping("/google")
