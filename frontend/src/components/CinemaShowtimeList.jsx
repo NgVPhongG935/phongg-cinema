@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { layLichChieuHomNayTheoRap } from '../services/showtimeService'
 import { dinhDangGio } from '../utils/formatters'
 import { hienThiDoTuoi } from '../utils/locPhim'
+import { locSuatChieuDuyNhat, nhomSuatTheoGio, tenPhongSuat, khoaSuatChieu } from '../utils/locSuatChieu'
 import AnhPosterPhim from './AnhPosterPhim'
 
 function taoDanhSach7Ngay() {
@@ -37,14 +38,29 @@ export default function CinemaShowtimeList({ maRap, tenRap }) {
     }
     datDangTai(true)
     layLichChieuHomNayTheoRap(maRap, ngayChieu)
-      .then(datDanhSachPhim)
+      .then((ds) => {
+        // #region agent log
+        const movies = Array.isArray(ds) ? ds : []
+        const suat = movies.flatMap((p) => p.showtimes || p.danhSachSuat || [])
+        const ids = suat.map((s) => s.id)
+        const slots = suat.map((s) => `${s.startTime || s.thoiGianBatDau}|${s.roomId || s.maPhong}`)
+        const gio = suat.map((s) => s.startTime || s.thoiGianBatDau)
+        const after = locSuatChieuDuyNhat(suat)
+        const gioGroups = Object.values(nhomSuatTheoGio(suat)).reduce((n, ds) => n + ds.length, 0)
+        fetch('http://127.0.0.1:7246/ingest/4225d522-756d-4686-a16f-b71753054886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'12750d'},body:JSON.stringify({sessionId:'12750d',runId:'post-fix',hypothesisId:'C',location:'CinemaShowtimeList.jsx:fetch',message:'home cinema-day payload',data:{movieCount:movies.length,suatCount:suat.length,uniqueIds:new Set(ids).size,uniqueSlots:new Set(slots).size,uniqueGio:new Set(gio).size,afterDedupe:after.length,gioGroups,hasBothFields:movies.some((p)=>Array.isArray(p.showtimes)&&Array.isArray(p.danhSachSuat)),sampleRooms:[...new Set(suat.map((s)=>s.roomId||s.maPhong))].slice(0,12)},timestamp:Date.now()})}).catch(()=>{})
+        // #endregion
+        datDanhSachPhim(ds)
+      })
       .catch(() => datDanhSachPhim([]))
       .finally(() => datDangTai(false))
   }, [maRap, ngayChieu])
 
   if (!maRap) return null
 
-  const tongSoSuat = danhSachPhim.reduce((tong, p) => tong + (p.danhSachSuat?.length || 0), 0)
+  const tongSoSuat = danhSachPhim.reduce(
+    (tong, p) => tong + locSuatChieuDuyNhat(p.showtimes || p.danhSachSuat || []).length,
+    0,
+  )
 
   return (
     <section className="mt-6 rounded-3xl border border-white/10 bg-gradient-to-br from-cinema-900/60 via-cinema-950/80 to-fuchsia-950/20 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
@@ -165,32 +181,48 @@ export default function CinemaShowtimeList({ maRap, tenRap }) {
                 </div>
               </div>
 
-              {/* 1. KHU VỰC BÊN PHẢI: Click chọn Giờ chiếu chuyển thẳng sang Đặt vé */}
-              <div className="flex flex-wrap gap-2 sm:max-w-md sm:justify-end lg:max-w-xl">
-                {(phim.showtimes || phim.danhSachSuat)?.map((suat) => (
-                  <button
-                    key={suat.id}
-                    type="button"
-                    disabled={suat.hetHan}
-                    onClick={(e) => {
-                      e.stopPropagation() // Chặn sự kiện nổi bọt lên Card cha
-                      dieuHuong(`/booking/${suat.id}`)
-                    }}
-                    title={suat.dinhDang ? `${suat.dinhDang} · ${dinhDangGio(suat.thoiGianBatDau)}` : undefined}
-                    className={`group/slot relative flex min-w-[4.8rem] flex-col items-center rounded-xl border px-3 py-2 text-sm font-bold transition duration-200 ${
-                      suat.hetHan
-                        ? 'cursor-not-allowed border-white/5 bg-white/[0.02] text-slate-600 line-through opacity-40'
-                        : 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-200 hover:scale-105 hover:border-fuchsia-400 hover:bg-fuchsia-600 hover:text-white hover:shadow-lg hover:shadow-fuchsia-900/50'
-                    }`}
-                  >
-                    <span>{dinhDangGio(suat.thoiGianBatDau)}</span>
-                    {!suat.hetHan && (
-                      <span className="mt-0.5 flex items-center gap-0.5 text-[10px] font-medium opacity-75 group-hover/slot:opacity-100">
-                        <Ticket size={10} />
-                        Đặt vé
-                      </span>
-                    )}
-                  </button>
+              <div className="flex min-w-0 flex-col gap-3 sm:max-w-lg sm:items-end lg:max-w-2xl">
+                {Object.entries(nhomSuatTheoGio(phim.showtimes || phim.danhSachSuat || [])).map(([dinhDang, cacGio]) => (
+                  <div key={dinhDang} className="w-full">
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-fuchsia-300/80 sm:text-right">
+                      {dinhDang}
+                    </p>
+                    <div className="flex flex-col gap-2 sm:items-end">
+                      {cacGio.map((nhom) => {
+                        const gio = dinhDangGio(nhom.startTime)
+                        const hetHanHet = nhom.phong.every((s) => s.hetHan || s.expired)
+                        return (
+                          <div key={`${dinhDang}|${nhom.gioKey}`} className="flex flex-wrap items-center justify-end gap-1.5">
+                            <span className={`min-w-[3.2rem] text-sm font-bold ${hetHanHet ? 'text-slate-600 line-through' : 'text-white'}`}>
+                              {gio}
+                            </span>
+                            {nhom.phong.map((suat) => {
+                              const phong = tenPhongSuat(suat)
+                              return (
+                                <button
+                                  key={khoaSuatChieu(suat)}
+                                  type="button"
+                                  disabled={suat.hetHan || suat.expired}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    dieuHuong(`/booking/${suat.id}`)
+                                  }}
+                                  title={[tenRap, phong && `Phòng ${phong}`, gio].filter(Boolean).join(' · ')}
+                                  className={`rounded-lg border px-2 py-1 text-[11px] font-semibold transition ${
+                                    suat.hetHan || suat.expired
+                                      ? 'cursor-not-allowed border-white/5 text-slate-600 opacity-40'
+                                      : 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-200 hover:bg-fuchsia-600 hover:text-white'
+                                  }`}
+                                >
+                                  {phong || 'Phòng'}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 ))}
               </div>
             </article>

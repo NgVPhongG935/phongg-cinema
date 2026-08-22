@@ -8,10 +8,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ShowtimeRepository extends MongoRepository<Showtime, String> {
-    @Query("{ $and: [ { $or: [ { movieId: ?0 }, { maPhim: ?0 } ] }, { $or: [ { startTime: { $gte: ?1, $lte: ?2 } }, { thoiGianBatDau: { $gte: ?1, $lte: ?2 } } ] } ] }")
+    @Query("{ $and: [ { $or: [ { movieId: ?0 }, { maPhim: ?0 } ] }, { $or: [ { startTime: { $gte: ?1, $lt: ?2 } }, { thoiGianBatDau: { $gte: ?1, $lt: ?2 } } ] } ] }")
     List<Showtime> findByMaPhimAndThoiGianBatDauBetween(String maPhim, LocalDateTime batDauNgay, LocalDateTime ketThucNgay);
 
-    @Query("{ $and: [ { $or: [ { movieId: ?0 }, { maPhim: ?0 } ] }, { $or: [ { cinemaId: ?1 }, { maRap: ?1 } ] }, { $or: [ { startTime: { $gte: ?2, $lte: ?3 } }, { thoiGianBatDau: { $gte: ?2, $lte: ?3 } } ] } ] }")
+    @Query("{ $and: [ { $or: [ { movieId: ?0 }, { maPhim: ?0 } ] }, { $or: [ { cinemaId: ?1 }, { maRap: ?1 } ] }, { $or: [ { startTime: { $gte: ?2, $lt: ?3 } }, { thoiGianBatDau: { $gte: ?2, $lt: ?3 } } ] } ] }")
     List<Showtime> findByMaPhimAndMaRapAndThoiGianBatDauBetween(String maPhim, String maRap, LocalDateTime batDauNgay, LocalDateTime ketThucNgay);
 
     @Query("{ $and: [ { $or: [ { cinemaId: ?0 }, { maRap: ?0 } ] }, { $or: [ { roomId: ?1 }, { maPhong: ?1 } ] }, { $or: [ { startTime: { $gte: ?2, $lte: ?3 } }, { thoiGianBatDau: { $gte: ?2, $lte: ?3 } } ] } ] }")

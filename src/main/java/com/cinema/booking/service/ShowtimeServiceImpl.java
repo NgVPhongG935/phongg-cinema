@@ -43,6 +43,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,6 +70,18 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         List<Showtime> danhSachSuat = (maRap == null || maRap.isBlank())
                 ? khoSuatChieu.findByMaPhimAndThoiGianBatDauBetween(maPhim, batDauNgay, ketThucNgay)
                 : khoSuatChieu.findByMaPhimAndMaRapAndThoiGianBatDauBetween(maPhim, maRap, batDauNgay, ketThucNgay);
+        // #region agent log
+        try {
+            java.util.Set<String> ids = new java.util.HashSet<>();
+            java.util.Set<String> slotKeys = new java.util.HashSet<>();
+            for (Showtime s : danhSachSuat) {
+                ids.add(s.getId());
+                slotKeys.add(String.valueOf(s.getStartTime()) + "|" + s.getRoomId());
+            }
+            String line = "{\"sessionId\":\"12750d\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"location\":\"ShowtimeServiceImpl.layLichChieuTheoPhimVaNgay\",\"message\":\"showtimes query\",\"data\":{\"maPhim\":\"" + maPhim + "\",\"maRap\":\"" + String.valueOf(maRap) + "\",\"raw\":" + danhSachSuat.size() + ",\"uniqueIds\":" + ids.size() + ",\"uniqueSlot\":" + slotKeys.size() + "},\"timestamp\":" + System.currentTimeMillis() + "}\n";
+            java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {}
+        // #endregion
         return chuyenDoiDanhSach(danhSachSuat, false);
     }
 
@@ -365,6 +378,21 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 .stream()
                 .filter(suat -> ngay.isAfter(LocalDate.now()) || !suat.getThoiGianBatDau().isBefore(bayGio))
                 .toList();
+        // #region agent log
+        try {
+            java.util.Set<String> ids = new java.util.HashSet<>();
+            java.util.Set<String> slotKeys = new java.util.HashSet<>();
+            java.util.Map<String, Integer> gioDem = new java.util.HashMap<>();
+            for (Showtime s : danhSachSuat) {
+                ids.add(s.getId());
+                String gio = s.getStartTime() != null ? s.getStartTime().toString() : "null";
+                slotKeys.add(gio + "|" + s.getRoomId());
+                gioDem.merge(gio, 1, Integer::sum);
+            }
+            String line = "{\"sessionId\":\"12750d\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"location\":\"ShowtimeServiceImpl.layLichChieuHomNayTheoRap\",\"message\":\"cinema-day raw\",\"data\":{\"maRap\":\"" + maRap + "\",\"ngay\":\"" + ngayChieu + "\",\"raw\":" + danhSachSuat.size() + ",\"uniqueIds\":" + ids.size() + ",\"uniqueSlot\":" + slotKeys.size() + ",\"gioCounts\":" + gioDem.size() + "},\"timestamp\":" + System.currentTimeMillis() + "}\n";
+            java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {}
+        // #endregion
 
         if (danhSachSuat.isEmpty()) return List.of();
 
@@ -396,13 +424,25 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 .toList();
     }
 
+    /** Distinct theo _id, rồi theo (startTime, roomId) — tránh suất trùng từ seed/query. */
+    private List<Showtime> locSuatTrung(List<Showtime> danhSachSuat) {
+        Map<String, Showtime> theoSlot = new LinkedHashMap<>();
+        for (Showtime suat : danhSachSuat) {
+            if (suat == null) continue;
+            String khoaSlot = String.valueOf(suat.getStartTime()) + "|" + suat.getRoomId();
+            theoSlot.putIfAbsent(khoaSlot, suat);
+        }
+        return new ArrayList<>(theoSlot.values());
+    }
+
     private List<ShowtimeResponseDto> chuyenDoiDanhSach(List<Showtime> danhSachSuat, boolean giamDanTheoThoiGian) {
+        List<Showtime> daLoc = locSuatTrung(danhSachSuat);
         Map<String, String> tenRapTheoMa = khoRap.findAll().stream()
                 .collect(Collectors.toMap(Cinema::getId, Cinema::getTenRap, (a, b) -> a));
         Map<String, String> tenPhimTheoMa = khoPhim.findAll().stream()
                 .collect(Collectors.toMap(Movie::getId, Movie::getTitle, (a, b) -> a));
         LocalDateTime bayGio = LocalDateTime.now();
-        return danhSachSuat.stream()
+        return daLoc.stream()
                 .sorted(giamDanTheoThoiGian
                         ? (a, b) -> b.getThoiGianBatDau().compareTo(a.getThoiGianBatDau())
                         : (a, b) -> a.getThoiGianBatDau().compareTo(b.getThoiGianBatDau()))
