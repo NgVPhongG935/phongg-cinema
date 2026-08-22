@@ -33,6 +33,7 @@ import ManageTicketsPage from './pages/admin/ManageTicketsPage'
 import ManagePaymentConfigPage from './pages/admin/ManagePaymentConfigPage'
 import ScanQrPage from './pages/staff/ScanQrPage'
 import BookingSuccessPage from './pages/BookingSuccessPage'
+import ScrollToTop from './components/ScrollToTop'
 
 function PrefetchCatalog() {
   useHinhThucThanhToan()
@@ -68,7 +69,9 @@ function PublicLayout() {
 }
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminOverviewPage />} />
@@ -89,6 +92,7 @@ export default function App() {
       </Route>
       <Route path="/staff/scan-qr" element={<ScanQrPage />} />
       <Route path="/*" element={<PublicLayout />} />
-    </Routes>
+      </Routes>
+    </>
   )
 }

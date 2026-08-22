@@ -4,8 +4,9 @@ import { layDanhSachKhuVuc } from './regionService'
 import { layDanhSachHinhThucThanhToan } from './paymentMethodService'
 import { CHI_SO_LOC_RONG } from '../utils/locPhim'
 
-/** Số phim mỗi trang trang chủ — tránh tải cả kho khi vừa vào web. */
-export const KICH_THUOC_TRANG_CHU = 8
+/** 5 cột × 4 dòng trên desktop. Banner vẫn lấy riêng số lượng nhỏ hơn. */
+export const KICH_THUOC_TRANG_CHU = 20
+export const SO_PHIM_BANNER = 8
 
 /**
  * Gộp request khởi tạo trang chủ — chạy song song bằng Promise.all.
@@ -58,6 +59,10 @@ export async function taiDuLieuTrangChu({
   const danhSach = phim?.content || (Array.isArray(phim) ? phim : [])
   const tongPhim = phim?.totalElements ?? danhSach.length
   const tongTrang = phim?.totalPages ?? Math.max(1, Math.ceil(tongPhim / size))
+
+  // #region agent log
+  fetch('http://127.0.0.1:7246/ingest/4225d522-756d-4686-a16f-b71753054886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'12750d'},body:JSON.stringify({sessionId:'12750d',runId:'grid',hypothesisId:'A',location:'homeService.js:taiDuLieuTrangChu',message:'movies page payload',data:{requestedSize:size,page,trangThai,contentLen:danhSach.length,apiSize:phim?.size,totalElements:tongPhim,totalPages:tongTrang,isArray:Array.isArray(phim),hasContent:Array.isArray(phim?.content)},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
 
   return {
     danhSachPhim: danhSach,

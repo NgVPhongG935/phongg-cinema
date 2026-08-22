@@ -33,7 +33,7 @@ public class MovieServiceImpl implements MovieService {
     private Pageable chuanHoaPhanTrang(Pageable phanTrang) {
         Sort sapXep = Sort.by(Sort.Order.desc("rating"), Sort.Order.desc("releaseDate"), Sort.Order.desc("id"));
         if (phanTrang == null || phanTrang.isUnpaged()) {
-            return PageRequest.of(0, 8, sapXep);
+            return PageRequest.of(0, 20, sapXep);
         }
         return PageRequest.of(phanTrang.getPageNumber(), phanTrang.getPageSize(), sapXep);
     }

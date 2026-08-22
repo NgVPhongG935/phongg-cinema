@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import BannerSection from '../components/BannerSection'
 import CinemaShowtimeList from '../components/CinemaShowtimeList'
-import MovieCard from '../components/MovieCard'
-import KhuonSkeletPhim from '../components/KhuonSkeletPhim'
+import MovieList from '../components/MovieList'
 import QuickCinemaLocator from '../components/QuickCinemaLocator'
 import ThanhLocPhim from '../components/ThanhLocPhim'
 import { useViTriRap } from '../context/ViTriRapContext'
@@ -13,7 +12,7 @@ import { CHI_SO_LOC_RONG, KIEU_SAP_XEP, locVaSapXepPhim } from '../utils/locPhim
 import { layDanhSachRapCoSuat } from '../utils/quickCinemaLocator'
 
 export default function HomePage() {
-  const movieListRef = useRef(null)
+  const movieSectionRef = useRef(null)
   const [thamSoUrl, datThamSoUrl] = useSearchParams()
   const [trangThai, datTrangThai] = useState('SHOWING')
   const [theLoaiDuocChon, datTheLoaiDuocChon] = useState('TAT_CA')
@@ -45,14 +44,17 @@ export default function HomePage() {
   const rapWidget = danhSachRap.find((rap) => rap.id === maRapWidget) || null
   const danhSachRapCoSuat = useMemo(() => layDanhSachRapCoSuat(chiSoLocPhim), [chiSoLocPhim])
 
-  useEffect(() => {
-    const pageParam = parseInt(thamSoUrl.get('page'), 10)
-    if (pageParam && pageParam > 1) {
-      setTimeout(() => {
-        movieListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 300)
-    }
-  }, [])
+  const OFFSET_NAVBAR = 90
+
+  const cuonToiDanhSachPhim = () => {
+    const element = movieSectionRef.current
+    if (!element) return
+    const y = element.getBoundingClientRect().top + window.pageYOffset - OFFSET_NAVBAR
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/4225d522-756d-4686-a16f-b71753054886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'12750d'},body:JSON.stringify({sessionId:'12750d',runId:'scroll-section',hypothesisId:'S',location:'HomePage.jsx:cuonToiDanhSachPhim',message:'scroll to movie section',data:{y,pageYOffset:window.pageYOffset,rectTop:element.getBoundingClientRect().top,offset:OFFSET_NAVBAR},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    window.scrollTo({ top: y, behavior: 'smooth' })
+  }
 
   const danhSachPhimLoc = useMemo(
     () =>
@@ -64,6 +66,13 @@ export default function HomePage() {
     [danhSachPhim, theLoaiDuocChon, rapDuocChon, dinhDangDuocChon, doTuoiDuocChon, kieuSapXep, rapGanNhatId, chiSoLocPhim],
   )
 
+  useEffect(() => {
+    if (dangTai) return
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/4225d522-756d-4686-a16f-b71753054886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'12750d'},body:JSON.stringify({sessionId:'12750d',runId:'grid',hypothesisId:'C',location:'HomePage.jsx:danhSachPhimLoc',message:'grid counts after filter',data:{kichThuocTrang:KICH_THUOC_TRANG_CHU,rawLen:danhSachPhim.length,filteredLen:danhSachPhimLoc.length,tongPhim,tongTrang,trangHienTai,theLoaiDuocChon,rapDuocChon,dinhDangDuocChon,doTuoiDuocChon,innerWidth:typeof window!=='undefined'?window.innerWidth:0},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }, [dangTai, danhSachPhim, danhSachPhimLoc, tongPhim, tongTrang, trangHienTai, theLoaiDuocChon, rapDuocChon, dinhDangDuocChon, doTuoiDuocChon])
+
   const chuyenTrang = (trangMoi) => {
     if (trangMoi < 0 || trangMoi >= tongTrang || trangMoi === trangHienTai) return
     const paramsMoi = new URLSearchParams(thamSoUrl)
@@ -72,8 +81,8 @@ export default function HomePage() {
     } else {
       paramsMoi.set('page', String(trangMoi + 1))
     }
-    datThamSoUrl(paramsMoi, { preventScrollReset: true })
-    movieListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    datThamSoUrl(paramsMoi)
+    cuonToiDanhSachPhim()
   }
 
   const chuyenTabTrangThai = (ttMoi) => {
@@ -82,6 +91,7 @@ export default function HomePage() {
     const paramsMoi = new URLSearchParams(thamSoUrl)
     paramsMoi.delete('page')
     datThamSoUrl(paramsMoi)
+    cuonToiDanhSachPhim()
   }
 
   const danhSachTrang = useMemo(() => {
@@ -117,7 +127,11 @@ export default function HomePage() {
           <CinemaShowtimeList maRap={maRapWidget} tenRap={rapWidget?.tenRap} />
         </section>
 
-        <section ref={movieListRef} id="danh-sach-phim" className="mx-auto max-w-7xl px-4 py-12 scroll-mt-20">
+        <section
+          ref={movieSectionRef}
+          id="movie-list-section"
+          className="mx-auto max-w-7xl px-4 py-12 scroll-mt-[90px]"
+        >
           <div className="mb-7 mt-8 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="tieu-de-cyber text-2xl font-bold sm:text-3xl">Phim đang chiếu</h2>
@@ -169,13 +183,9 @@ export default function HomePage() {
           />
 
           {dangTai ? (
-            <KhuonSkeletPhim />
+            <MovieList dangTai soKhung={KICH_THUOC_TRANG_CHU} />
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {danhSachPhimLoc.map((phim, chiSo) => (
-                <MovieCard key={phim.id} phim={phim} chiSo={chiSo} />
-              ))}
-            </div>
+            <MovieList danhSachPhim={danhSachPhimLoc} />
           )}
 
           {!dangTai && danhSachPhimLoc.length === 0 && (

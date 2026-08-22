@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { layDanhSachPhim } from '../services/movieService'
-import { KICH_THUOC_TRANG_CHU } from '../services/homeService'
+import { SO_PHIM_BANNER } from '../services/homeService'
 import { queryKeys } from '../lib/queryClient'
 import { CHI_SO_LOC_RONG, ganMetaPhim, hienThiDoTuoiDayDu } from '../utils/locPhim'
 import { chuanHoaUrlPoster, layUrlPosterPhim, POSTER_MAC_DINH } from '../utils/anhPosterPhim'
@@ -18,7 +18,7 @@ function taoDanhSachBanner(danhSachNguon, chiSo) {
     .filter((phim) => (phim.status || phim.trangThai || 'SHOWING') === 'SHOWING')
     .map((phim) => ganMetaPhim(phim, chiSo || CHI_SO_LOC_RONG))
     .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-    .slice(0, KICH_THUOC_TRANG_CHU)
+    .slice(0, SO_PHIM_BANNER)
 }
 
 function PosterBanner3D({ phim }) {
@@ -52,8 +52,8 @@ export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null
 
   const canReuseHome = Array.isArray(danhSachPhim) && danhSachPhim.length > 0
   const { data: phimFallback } = useQuery({
-    queryKey: queryKeys.movies({ trangThai: 'SHOWING', page: 0, size: KICH_THUOC_TRANG_CHU }),
-    queryFn: () => layDanhSachPhim({ trangThai: 'SHOWING', page: 0, size: KICH_THUOC_TRANG_CHU }),
+    queryKey: queryKeys.movies({ trangThai: 'SHOWING', page: 0, size: SO_PHIM_BANNER }),
+    queryFn: () => layDanhSachPhim({ trangThai: 'SHOWING', page: 0, size: SO_PHIM_BANNER }),
     enabled: !canReuseHome,
     staleTime: 60 * 1000,
   })
