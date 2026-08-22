@@ -1,66 +1,80 @@
-function chuanHoaGio(item) {
-  const raw = item?.startTime || item?.thoiGianBatDau || ''
+function layGioGoc(item) {
+  return item?.startTime || item?.start_time || item?.thoiGianBatDau || ''
+}
+
+/** HH:mm theo giờ địa phương — không dùng toISOString (UTC) kẻo lệch key. */
+export function chuanHoaGio(item) {
+  const raw = typeof item === 'string' ? item : layGioGoc(item)
   const d = raw ? new Date(raw) : null
-  if (d && !Number.isNaN(d.getTime())) return d.toISOString().slice(0, 16)
-  return String(raw)
-}
-
-export function khoaSuatChieu(item) {
-  const gio = chuanHoaGio(item)
-  const phong = item?.roomId || item?.maPhong || ''
-  if (gio || phong) return `${gio}|${phong}`
-  return String(item?.id || item?._id || Math.random())
-}
-
-export function locSuatChieuDuyNhat(showtimes = []) {
-  const uniqueShowtimes = Array.from(
-    new Map(showtimes.map((item) => [khoaSuatChieu(item), item])).values(),
-  ).sort(
-    (a, b) =>
-      new Date(a.startTime || a.thoiGianBatDau) - new Date(b.startTime || b.thoiGianBatDau),
-  )
-  return uniqueShowtimes
-}
-
-export function nhomSuatTheoDinhDang(showtimes = []) {
-  return locSuatChieuDuyNhat(showtimes).reduce((ketQua, suat) => {
-    const khoa = suat.format || suat.dinhDang || '2D Lồng Tiếng'
-    if (!ketQua[khoa]) ketQua[khoa] = []
-    ketQua[khoa].push(suat)
-    return ketQua
-  }, {})
-}
-
-/** Nhóm Phim/Rạp/Ngày/Định dạng → khung giờ, phòng là chip con. */
-export function nhomSuatTheoGio(showtimes = []) {
-  const map = new Map()
-  for (const suat of locSuatChieuDuyNhat(showtimes)) {
-    const dinhDang = suat.format || suat.dinhDang || '2D Lồng Tiếng'
-    const gio = chuanHoaGio(suat)
-    const khoa = `${dinhDang}|${gio}`
-    if (!map.has(khoa)) {
-      map.set(khoa, {
-        dinhDang,
-        gioKey: gio,
-        startTime: suat.startTime || suat.thoiGianBatDau,
-        endTime: suat.endTime || suat.thoiGianKetThuc,
-        price: suat.price ?? suat.giaVeTu,
-        phong: [],
-      })
-    }
-    map.get(khoa).phong.push(suat)
+  if (d && !Number.isNaN(d.getTime())) {
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   }
-  const theoDinhDang = {}
-  for (const nhom of map.values()) {
-    if (!theoDinhDang[nhom.dinhDang]) theoDinhDang[nhom.dinhDang] = []
-    theoDinhDang[nhom.dinhDang].push(nhom)
-  }
-  for (const ds of Object.values(theoDinhDang)) {
-    ds.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-  }
-  return theoDinhDang
+  const m = String(raw).match(/T(\d{2}:\d{2})/)
+  return m ? m[1] : String(raw)
+}
+
+export function maRapSuat(item) {
+  return item?.cinemaId || item?.maRap || ''
 }
 
 export function tenPhongSuat(suat) {
-  return suat?.roomId || suat?.maPhong || suat?.tenPhong || ''
+  return suat?.roomId || suat?.maPhong || suat?.tenPhong || suat?.room || ''
+}
+
+export function chuanHoaDinhDang(st) {
+  const s = String(st?.format || st?.dinhDang || '2D').toLowerCase()
+  if (s.includes('3d')) return '3D'
+  if (s.includes('imax')) return 'IMAX'
+  if (s.includes('lồng') || s.includes('long')) return '2D Lồng tiếng'
+  if (s.includes('phụ') || s.includes('phu')) return '2D Phụ đề'
+  return st?.format || st?.dinhDang || '2D'
+}
+
+export function khoaSuatChieu(item) {
+  return `${chuanHoaGio(item)}-${maRapSuat(item)}-${tenPhongSuat(item)}`
+}
+
+export function getUniqueShowtimes(showtimes = []) {
+  const map = new Map()
+  showtimes.forEach((st) => {
+    const key = khoaSuatChieu(st)
+    if (!map.has(key)) map.set(key, st)
+  })
+  return Array.from(map.values()).sort((a, b) => new Date(layGioGoc(a)) - new Date(layGioGoc(b)))
+}
+
+export const locSuatChieuDuyNhat = getUniqueShowtimes
+
+/** Một nút / một mốc HH:mm / một rạp / một định dạng. */
+export function gioChieuDuyNhat(showtimes = []) {
+  const map = new Map()
+  getUniqueShowtimes(showtimes).forEach((st) => {
+    const key = `${chuanHoaGio(st)}|${chuanHoaDinhDang(st)}|${maRapSuat(st)}`
+    if (!map.has(key)) map.set(key, st)
+  })
+  return Array.from(map.values()).sort((a, b) => new Date(layGioGoc(a)) - new Date(layGioGoc(b)))
+}
+
+export function nhomTheoDinhDangVaGio(showtimes = []) {
+  const ketQua = {}
+  gioChieuDuyNhat(showtimes).forEach((st) => {
+    const dinhDang = chuanHoaDinhDang(st)
+    if (!ketQua[dinhDang]) ketQua[dinhDang] = []
+    ketQua[dinhDang].push(st)
+  })
+  return ketQua
+}
+
+export function gomSuatPhim(phim) {
+  const gop = [...(phim?.showtimes || []), ...(phim?.danhSachSuat || [])]
+  const unique = gioChieuDuyNhat(gop)
+  return { ...phim, showtimes: unique, danhSachSuat: unique }
+}
+
+export function nhomSuatTheoGio(showtimes = []) {
+  return nhomTheoDinhDangVaGio(showtimes)
+}
+
+export function nhomSuatTheoDinhDang(showtimes = []) {
+  return nhomTheoDinhDangVaGio(showtimes)
 }

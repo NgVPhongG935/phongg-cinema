@@ -1,6 +1,7 @@
 package com.cinema.booking.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -54,7 +55,9 @@ public class PhimSuatHomNayDto {
     public String getGioiHanTuoi() { return ageRating; }
     public void setGioiHanTuoi(String gioiHanTuoi) { this.ageRating = gioiHanTuoi; }
 
+    @JsonIgnore
     public List<ShowtimeResponseDto> getDanhSachSuat() { return showtimes; }
+    @JsonIgnore
     public void setDanhSachSuat(List<ShowtimeResponseDto> danhSachSuat) { this.showtimes = danhSachSuat; }
 }
 

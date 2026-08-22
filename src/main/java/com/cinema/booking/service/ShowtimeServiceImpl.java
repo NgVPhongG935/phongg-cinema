@@ -82,7 +82,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
             java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
         } catch (Exception ignored) {}
         // #endregion
-        return chuyenDoiDanhSach(danhSachSuat, false);
+        return locGioDuyNhat(chuyenDoiDanhSach(danhSachSuat, false));
     }
 
     public List<ShowtimeResponseDto> layLichSuSuatChieuAdmin() {
@@ -406,7 +406,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         return suatTheoPhim.entrySet().stream()
                 .map(muc -> {
                     Movie phim = phimTheoMa.get(muc.getKey());
-                    List<ShowtimeResponseDto> danhSachSuatPhim = chuyenDoiDanhSach(muc.getValue(), false);
+                    List<ShowtimeResponseDto> danhSachSuatPhim = locGioDuyNhat(chuyenDoiDanhSach(muc.getValue(), false));
                     return PhimSuatHomNayDto.builder()
                             .movieId(muc.getKey())
                             .title(phim != null ? phim.getTitle() : danhSachSuatPhim.get(0).getMovieTitle())
@@ -424,7 +424,20 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 .toList();
     }
 
-    /** Distinct theo _id, rồi theo (startTime, roomId) — tránh suất trùng từ seed/query. */
+    /** Public UI: một suất / một mốc giờ / một rạp / một định dạng. */
+    private List<ShowtimeResponseDto> locGioDuyNhat(List<ShowtimeResponseDto> danhSach) {
+        Map<String, ShowtimeResponseDto> theoGio = new LinkedHashMap<>();
+        for (ShowtimeResponseDto suat : danhSach) {
+            if (suat == null || suat.getStartTime() == null) continue;
+            String gio = suat.getStartTime().withSecond(0).withNano(0).toString();
+            String dinhDang = suat.getFormat() != null ? suat.getFormat() : "";
+            String rap = suat.getCinemaId() != null ? suat.getCinemaId() : "";
+            theoGio.putIfAbsent(gio + "|" + dinhDang + "|" + rap, suat);
+        }
+        return new ArrayList<>(theoGio.values());
+    }
+
+    /** Distinct theo (startTime, roomId) — tránh suất trùng từ seed. */
     private List<Showtime> locSuatTrung(List<Showtime> danhSachSuat) {
         Map<String, Showtime> theoSlot = new LinkedHashMap<>();
         for (Showtime suat : danhSachSuat) {
