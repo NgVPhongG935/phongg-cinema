@@ -1,0 +1,28 @@
+# Docker/Render: configure credentials in the service Environment settings.
+spring:
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:${MONGODB_URI:}}
+  mail:
+    username: ${SPRING_MAIL_USERNAME:${MAIL_USERNAME:}}
+    password: ${SPRING_MAIL_PASSWORD:${MAIL_PASSWORD:}}
+
+server:
+  tomcat:
+    threads:
+      min-spare: 2
+
+app:
+  backend-url: ${APP_BACKEND_URL:${RENDER_EXTERNAL_URL:http://localhost:8080}}
+  movie-ai:
+    # The Java image has neither a local SearXNG service nor Python/Scrapling.
+    # TMDB/Wikipedia and Gemini use HTTP and remain available independently.
+    enabled: false
+    searxng-url: ${SEARXNG_URL:}
+
+tmdb:
+  api-key: ${TMDB_API_KEY:}
+
+logging:
+  level:
+    org.springframework.boot.web.embedded.tomcat: INFO

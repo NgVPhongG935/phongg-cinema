@@ -6,6 +6,7 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,7 @@ public class GeminiApiClient {
     private static final Logger nhatKy = LoggerFactory.getLogger(GeminiApiClient.class);
 
     private final ObjectMapper boChuyenDoiJson;
+    private final RestClient geminiRestClient;
     private final AtomicInteger chiSoKhoa = new AtomicInteger(0);
     private final List<String> danhSachKhoa = new ArrayList<>();
 
@@ -39,8 +41,10 @@ public class GeminiApiClient {
     @Value("${gemini.model:gemini-1.5-flash}")
     private String modelMacDinh;
 
-    public GeminiApiClient(ObjectMapper boChuyenDoiJson) {
+    public GeminiApiClient(ObjectMapper boChuyenDoiJson,
+            @Qualifier("geminiRestClient") RestClient geminiRestClient) {
         this.boChuyenDoiJson = boChuyenDoiJson;
+        this.geminiRestClient = geminiRestClient;
     }
 
     @PostConstruct
@@ -109,8 +113,8 @@ public class GeminiApiClient {
     }
 
     private String goiVoiKhoa(String model, Map<String, Object> body, String khoaApi) {
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + khoaApi;
-        return RestClient.create()
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+        return geminiRestClient
                 .post()
                 .uri(url)
                 .header("x-goog-api-key", khoaApi)

@@ -4,6 +4,7 @@ frontend/
 mobile/
 .git/
 .mvn/
+.m2-cache/
 *.exe
 *.log
 uploads/

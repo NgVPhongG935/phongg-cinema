@@ -24,6 +24,7 @@ public class TmdbMovieService {
     private static final String POSTER_BASE = "https://image.tmdb.org/t/p/w500";
 
     private final ObjectMapper boChuyenDoiJson;
+    private final RestClient movieMetadataClient;
 
     @Value("${tmdb.api-key:}")
     private String khoaApi;
@@ -57,7 +58,7 @@ public class TmdbMovieService {
     }
 
     private Long timIdPhim(String tenPhim, String ngonNgu) throws Exception {
-        String json = RestClient.create().get()
+        String json = movieMetadataClient.get()
                 .uri(BASE + "/search/movie?api_key={key}&query={q}&language={lang}&include_adult=false",
                         khoaApi, tenPhim, ngonNgu)
                 .retrieve().body(String.class);
@@ -67,7 +68,7 @@ public class TmdbMovieService {
     }
 
     private DuLieuThoPhimDto layChiTiet(long id, String ngonNgu) throws Exception {
-        String json = RestClient.create().get()
+        String json = movieMetadataClient.get()
                 .uri(BASE + "/movie/{id}?api_key={key}&language={lang}&append_to_response=credits,videos,release_dates",
                         id, khoaApi, ngonNgu)
                 .retrieve().body(String.class);

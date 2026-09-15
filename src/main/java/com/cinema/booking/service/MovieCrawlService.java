@@ -13,6 +13,7 @@ import org.springframework.web.client.RestClient;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.concurrent.TimeUnit;
 
 /** SearXNG tim link + Scrapling cao du lieu phim */
@@ -23,6 +24,7 @@ public class MovieCrawlService {
 
     private final ObjectMapper boChuyenDoiJson;
     private final TmdbMovieService dichVuTmdb;
+    private final RestClient movieMetadataClient;
 
     @Value("${app.movie-ai.enabled:false}")
     private boolean movieAiBat;
@@ -42,16 +44,14 @@ public class MovieCrawlService {
         // TMDB — poster, cast, mô tả (không cần Gemini)
         ketQua = mergeTho(ketQua, dichVuTmdb.timPhim(tenPhim.trim()));
 
-        // Wikipedia — bổ sung mô tả tiếng Việt
-        ketQua = boSungTuWikipedia(tenPhim.trim(), ketQua);
+        // Only request a fallback source when TMDB has no description.
+        if (thieuMoTa(ketQua))
+            ketQua = boSungTuWikipedia(tenPhim.trim(), ketQua);
 
-        if (searxngSanSang()) {
+        if ((movieAiBat || thieuMoTa(ketQua)) && searxngSanSang()) {
             if (movieAiBat) ketQua = mergeTho(ketQua, chayScriptPython(tenPhim.trim()));
             ketQua = boSungTuSnippetSearxng(tenPhim.trim(), ketQua);
         }
-
-        if (thieuMoTa(ketQua))
-            ketQua = boSungTuWikipedia(tenPhim.trim(), ketQua);
 
         if (ketQua.getSources() > 0)
             nhatKy.info("Tim phim «{}»: {} nguon, mo ta={}", tenPhim,
@@ -98,9 +98,13 @@ public class MovieCrawlService {
             nhatKy.warn("Khong tim thay script {}", script);
             return DuLieuThoPhimDto.builder().sources(0).build();
         }
+        Path outputFile = null;
+        Process tienTrinh = null;
         try {
+            outputFile = Files.createTempFile("cinema-movie-crawl-", ".log");
             ProcessBuilder pb = new ProcessBuilder(lenhPython, script.toString(), tenPhim);
             pb.redirectErrorStream(true);
+            pb.redirectOutput(outputFile.toFile());
             pb.environment().put("SEARXNG_URL", searxngUrl);
             Path vendorScrapling = Path.of("vendor", "scrapling").toAbsolutePath();
             if (vendorScrapling.toFile().exists()) {
@@ -109,14 +113,14 @@ public class MovieCrawlService {
                         + (pathCu.isBlank() ? "" : File.pathSeparator + pathCu);
                 pb.environment().put("PYTHONPATH", pathMoi);
             }
-            Process tienTrinh = pb.start();
-            String output = new String(tienTrinh.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            tienTrinh = pb.start();
             boolean ok = tienTrinh.waitFor(120, TimeUnit.SECONDS);
             if (!ok) {
                 tienTrinh.destroyForcibly();
                 nhatKy.warn("Script cao phim timeout");
                 return DuLieuThoPhimDto.builder().sources(0).build();
             }
+            String output = Files.readString(outputFile, StandardCharsets.UTF_8);
             if (tienTrinh.exitValue() != 0) {
                 nhatKy.warn("Script loi: {}", output.length() > 300 ? output.substring(0, 300) : output);
                 return DuLieuThoPhimDto.builder().sources(0).build();
@@ -128,9 +132,18 @@ public class MovieCrawlService {
                     ketQua.getPosterUrl() != null ? "co" : "khong",
                     ketQua.getTrailerUrl() != null ? "co" : "khong");
             return ketQua;
+        } catch (InterruptedException loi) {
+            Thread.currentThread().interrupt();
+            return DuLieuThoPhimDto.builder().sources(0).build();
         } catch (Exception loi) {
             nhatKy.warn("MovieCrawl script loi: {}", loi.getMessage());
             return DuLieuThoPhimDto.builder().sources(0).build();
+        } finally {
+            if (tienTrinh != null && tienTrinh.isAlive()) tienTrinh.destroyForcibly();
+            if (outputFile != null) {
+                try { Files.deleteIfExists(outputFile); }
+                catch (java.io.IOException ignored) { }
+            }
         }
     }
 
@@ -138,7 +151,7 @@ public class MovieCrawlService {
     private DuLieuThoPhimDto boSungTuSnippetSearxng(String tenPhim, DuLieuThoPhimDto cu) {
         if (cu.getTomTat() != null && !cu.getTomTat().isBlank()) return cu;
         try {
-            String json = RestClient.create().get()
+            String json = movieMetadataClient.get()
                     .uri(searxngUrl + "/search?q={q}&format=json", tenPhim + " phim plot summary")
                     .retrieve().body(String.class);
             JsonNode results = boChuyenDoiJson.readTree(json).path("results");
@@ -198,13 +211,13 @@ public class MovieCrawlService {
 
     private String timWikipedia(String tenPhim, String ngonNgu, String hauToTim) {
         try {
-            String jsonTim = RestClient.create().get()
+            String jsonTim = movieMetadataClient.get()
                     .uri("https://{lang}.wikipedia.org/w/api.php?action=query&list=search&search={q}&format=json&srlimit=5",
                             ngonNgu, tenPhim + hauToTim)
                     .retrieve().body(String.class);
             JsonNode ketQuaTim = boChuyenDoiJson.readTree(jsonTim).path("query").path("search");
             if (!ketQuaTim.isArray() || ketQuaTim.isEmpty()) {
-                jsonTim = RestClient.create().get()
+                jsonTim = movieMetadataClient.get()
                         .uri("https://{lang}.wikipedia.org/w/api.php?action=query&list=search&search={q}&format=json&srlimit=5",
                                 ngonNgu, tenPhim)
                         .retrieve().body(String.class);
@@ -215,7 +228,7 @@ public class MovieCrawlService {
             String tieuDe = ketQuaTim.get(0).path("title").asText(null);
             if (tieuDe == null || tieuDe.isBlank()) return null;
 
-            String jsonTrich = RestClient.create().get()
+            String jsonTrich = movieMetadataClient.get()
                     .uri("https://{lang}.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles={title}&format=json",
                             ngonNgu, tieuDe)
                     .retrieve().body(String.class);
@@ -261,8 +274,9 @@ public class MovieCrawlService {
     }
 
     private boolean searxngSanSang() {
+        if (searxngUrl == null || searxngUrl.isBlank()) return false;
         try {
-            RestClient.create().get()
+            movieMetadataClient.get()
                     .uri(searxngUrl + "/search?q=test&format=json")
                     .retrieve().toBodilessEntity();
             return true;

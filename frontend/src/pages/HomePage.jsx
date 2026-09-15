@@ -26,7 +26,7 @@ export default function HomePage() {
   const trangHienTai = Math.max(0, (parseInt(thamSoUrl.get('page'), 10) || 1) - 1)
   const tuKhoa = thamSoUrl.get('tuKhoa') || undefined
 
-  const { data, isLoading, isFetching } = useDuLieuTrangChu({
+  const { data, isLoading, isFetching, isError, refetch } = useDuLieuTrangChu({
     trangThai,
     page: trangHienTai,
     tuKhoa,
@@ -112,6 +112,17 @@ export default function HomePage() {
       <div className="pointer-events-none fixed left-1/2 top-1/3 z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-fuchsia-600/10 blur-[140px]" />
 
       <div className="relative z-10">
+        {isError && (
+          <div role="alert" className="mx-auto max-w-7xl px-4 pt-6">
+            <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-amber-100">
+              <p>Chưa tải được dữ liệu phim. Máy chủ có thể đang khởi động, bạn thử lại sau ít phút nhé.</p>
+              <button type="button" onClick={() => refetch()} disabled={isFetching}
+                className="mt-2 rounded-lg bg-amber-400/20 px-4 py-2 font-semibold disabled:opacity-50">
+                {isFetching ? 'Đang tải…' : 'Thử lại'}
+              </button>
+            </div>
+          </div>
+        )}
         <BannerSection
           danhSachPhim={trangThai === 'SHOWING' && trangHienTai === 0 ? danhSachPhim : null}
           chiSoLocPhim={chiSoLocPhim}

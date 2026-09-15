@@ -4,6 +4,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'https://phongg-cinema-api.onre
 
 const axiosClient = axios.create({
   baseURL: BASE_URL,
+  timeout: 90000,
   headers: {
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': 'true',
@@ -35,5 +36,4 @@ const apiClient = axiosClient
 
 export { BASE_URL, axiosClient, apiClient }
 export default axiosClient
-
 

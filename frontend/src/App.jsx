@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import NenDong from './components/NenDong'
@@ -7,33 +8,34 @@ import AiChatModal from './components/AiChatModal'
 import { ViTriRapProvider } from './context/ViTriRapContext'
 import { useHinhThucThanhToan } from './hooks/useCatalogQueries'
 import HomePage from './pages/HomePage'
-import MovieDetailPage from './pages/MovieDetailPage'
-import SeatBookingPage from './pages/SeatBookingPage'
-import ComboFoodPage from './pages/ComboFoodPage'
-import PaymentPage from './pages/PaymentPage'
-import PaymentResultPage from './pages/PaymentResultPage'
-import MyTicketsPage from './pages/MyTicketsPage'
-import ProfilePage from './pages/ProfilePage'
-import LoginPage from './pages/LoginPage'
-import AdminLayout from './pages/admin/AdminLayout'
-import AdminOverviewPage from './pages/admin/AdminOverviewPage'
-import ManageCombosPage from './pages/admin/ManageCombosPage'
-import ManageVouchersPage from './pages/admin/ManageVouchersPage'
-import ManageStaffsPage from './pages/admin/ManageStaffsPage'
-import ManageUsersPage from './pages/admin/ManageUsersPage'
-import ManagePersonsPage from './pages/admin/ManagePersonsPage'
-import ManageMoviesPage from './pages/admin/ManageMoviesPage'
-import ManageShowtimesPage from './pages/admin/ManageShowtimesPage'
-import ShowtimeSchedulePage from './pages/ShowtimeSchedulePage'
-import ManageCinemasPage from './pages/admin/ManageCinemasPage'
-import ManageRoomsPage from './pages/admin/ManageRoomsPage'
-import ManageSeatMapPage from './pages/admin/ManageSeatMapPage'
-import ManageRegionsPage from './pages/admin/ManageRegionsPage'
-import ManageTicketsPage from './pages/admin/ManageTicketsPage'
-import ManagePaymentConfigPage from './pages/admin/ManagePaymentConfigPage'
-import ScanQrPage from './pages/staff/ScanQrPage'
-import BookingSuccessPage from './pages/BookingSuccessPage'
 import ScrollToTop from './components/ScrollToTop'
+
+const MovieDetailPage = lazy(() => import('./pages/MovieDetailPage'))
+const SeatBookingPage = lazy(() => import('./pages/SeatBookingPage'))
+const ComboFoodPage = lazy(() => import('./pages/ComboFoodPage'))
+const PaymentPage = lazy(() => import('./pages/PaymentPage'))
+const PaymentResultPage = lazy(() => import('./pages/PaymentResultPage'))
+const MyTicketsPage = lazy(() => import('./pages/MyTicketsPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
+const AdminOverviewPage = lazy(() => import('./pages/admin/AdminOverviewPage'))
+const ManageCombosPage = lazy(() => import('./pages/admin/ManageCombosPage'))
+const ManageVouchersPage = lazy(() => import('./pages/admin/ManageVouchersPage'))
+const ManageStaffsPage = lazy(() => import('./pages/admin/ManageStaffsPage'))
+const ManageUsersPage = lazy(() => import('./pages/admin/ManageUsersPage'))
+const ManagePersonsPage = lazy(() => import('./pages/admin/ManagePersonsPage'))
+const ManageMoviesPage = lazy(() => import('./pages/admin/ManageMoviesPage'))
+const ManageShowtimesPage = lazy(() => import('./pages/admin/ManageShowtimesPage'))
+const ShowtimeSchedulePage = lazy(() => import('./pages/ShowtimeSchedulePage'))
+const ManageCinemasPage = lazy(() => import('./pages/admin/ManageCinemasPage'))
+const ManageRoomsPage = lazy(() => import('./pages/admin/ManageRoomsPage'))
+const ManageSeatMapPage = lazy(() => import('./pages/admin/ManageSeatMapPage'))
+const ManageRegionsPage = lazy(() => import('./pages/admin/ManageRegionsPage'))
+const ManageTicketsPage = lazy(() => import('./pages/admin/ManageTicketsPage'))
+const ManagePaymentConfigPage = lazy(() => import('./pages/admin/ManagePaymentConfigPage'))
+const ScanQrPage = lazy(() => import('./pages/staff/ScanQrPage'))
+const BookingSuccessPage = lazy(() => import('./pages/BookingSuccessPage'))
 
 function PrefetchCatalog() {
   useHinhThucThanhToan()
@@ -69,7 +71,7 @@ function PublicLayout() {
 }
 export default function App() {
   return (
-    <>
+    <Suspense fallback={<p role="status" className="min-h-screen bg-cinema-950 p-8 text-center text-white">Đang tải trang…</p>}>
       <ScrollToTop />
       <Routes>
       <Route path="/admin" element={<AdminLayout />}>
@@ -93,6 +95,6 @@ export default function App() {
       <Route path="/staff/scan-qr" element={<ScanQrPage />} />
       <Route path="/*" element={<PublicLayout />} />
       </Routes>
-    </>
+    </Suspense>
   )
 }
