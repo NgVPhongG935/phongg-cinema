@@ -10,6 +10,55 @@ export const DANH_SACH_QUAN_HCM = [
 
 export const TEN_RAP_MAC_DINH = 'Hùng Vương Plaza'
 export const THANH_PHO_MAC_DINH = 'Tp. Hồ Chí Minh'
+export const KHOA_RAP_DA_CHON = 'phongg_rap_da_chon'
+export const HOTLINE_RAP_MAC_DINH = '1900 2224'
+export const THANH_PHO_MAU = ['Hà Nội', 'Tp. Hồ Chí Minh', 'Đà Nẵng']
+
+export function chuanHoaTimKiem(chuoi) {
+  return String(chuoi || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+}
+
+export function locRapThongMinh(danhSachRap = [], tuKhoa) {
+  const q = chuanHoaTimKiem(tuKhoa)
+  if (!q) return danhSachRap
+  return danhSachRap.filter((rap) => {
+    const hay = [rap.tenRap, rap.diaChi, rap.khuVuc].map(chuanHoaTimKiem).join(' ')
+    return hay.includes(q)
+  })
+}
+
+export function tenRapNgan(ten) {
+  const goc = String(ten || '').trim()
+  return goc
+    .replace(/^PhongG Cinema\s*[-–:]\s*/i, '')
+    .replace(/^Phong Cinema\s*[-–:]\s*/i, '')
+    .trim() || goc
+}
+
+export function docRapDaChon() {
+  try {
+    return localStorage.getItem(KHOA_RAP_DA_CHON) || ''
+  } catch {
+    return ''
+  }
+}
+
+export function luuRapDaChon(maRap) {
+  try {
+    if (!maRap) localStorage.removeItem(KHOA_RAP_DA_CHON)
+    else localStorage.setItem(KHOA_RAP_DA_CHON, maRap)
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+export function hotlineRap(rap) {
+  return rap?.hotline || rap?.soDienThoai || rap?.phone || HOTLINE_RAP_MAC_DINH
+}
 
 export function locRapTheoQuan(danhSachRap = [], tenQuan) {
   if (!tenQuan) return []

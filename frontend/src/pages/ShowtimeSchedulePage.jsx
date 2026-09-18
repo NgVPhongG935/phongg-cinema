@@ -115,13 +115,6 @@ export default function ShowtimeSchedulePage() {
     datDangTai(true)
     layLichChieu(id, ngayChieu, maRap)
       .then((ds) => {
-        // #region agent log
-        const list = Array.isArray(ds) ? ds : []
-        const ids = list.map((s) => s.id)
-        const slots = list.map((s) => `${s.startTime || s.thoiGianBatDau}|${s.roomId || s.maPhong}`)
-        const after = gioChieuDuyNhat(getUniqueShowtimes(list))
-        fetch('http://127.0.0.1:7246/ingest/4225d522-756d-4686-a16f-b71753054886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'12750d'},body:JSON.stringify({sessionId:'12750d',runId:'post-fix',hypothesisId:'D',location:'ShowtimeSchedulePage.jsx:fetch',message:'movie schedule payload',data:{count:list.length,uniqueIds:new Set(ids).size,uniqueSlots:new Set(slots).size,afterDedupe:after.length,rooms:[...new Set(after.map((s)=>s.roomId||s.maPhong))]},timestamp:Date.now()})}).catch(()=>{})
-        // #endregion
         datDanhSachSuat(after)
         const suatHopLe = after.find((s) => !s.hetHan && !s.expired)
         datSuatDangChon(suatHopLe || null)

@@ -9,10 +9,6 @@ export default function MovieList({ danhSachPhim = [], dangTai = false, soKhung 
     return <KhuonSkeletPhim soLuong={soKhung} />
   }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/4225d522-756d-4686-a16f-b71753054886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'12750d'},body:JSON.stringify({sessionId:'12750d',runId:'grid',hypothesisId:'E',location:'MovieList.jsx:render',message:'rendered movie cards',data:{rendered:danhSachPhim.length,innerWidth:typeof window!=='undefined'?window.innerWidth:0},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-
   return (
     <div className={LOP_LUOI}>
       {danhSachPhim.map((phim, chiSo) => (

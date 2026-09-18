@@ -5,6 +5,7 @@ export default function NenDong() {
       <div className="nen-dong-orb nen-dong-orb-1" />
       <div className="nen-dong-orb nen-dong-orb-2" />
       <div className="nen-dong-orb nen-dong-orb-3" />
+      <div className="cinema-depth-grid" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(131,100,255,0.08),transparent_50%)]" />
     </div>
   )

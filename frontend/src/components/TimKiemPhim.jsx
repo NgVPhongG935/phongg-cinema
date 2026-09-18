@@ -100,11 +100,20 @@ export default function TimKiemPhim({ className = '' }) {
   }, [dangOTrangChu, tuKhoaUrl])
 
   useEffect(() => {
-    layDanhSachPhim({ trangThai: 'SHOWING', size: 8 })
-      .then((phanHoi) => datPhimHot((phanHoi.content || phanHoi).slice(0, 6)))
-      .catch(() => datPhimHot([]))
     datLichSu(docLichSu())
   }, [])
+
+  // Chỉ tải gợi ý khi người dùng mở tìm kiếm, tránh tranh tài nguyên lúc API Render vừa thức.
+  useEffect(() => {
+    if (!moPanel || phimHot.length > 0) return undefined
+    let conHieuLuc = true
+    layDanhSachPhim({ trangThai: 'SHOWING', size: 8 })
+      .then((phanHoi) => {
+        if (conHieuLuc) datPhimHot((phanHoi.content || phanHoi).slice(0, 6))
+      })
+      .catch(() => {})
+    return () => { conHieuLuc = false }
+  }, [moPanel, phimHot.length])
 
   useEffect(() => {
     const dongPanel = (suKien) => {

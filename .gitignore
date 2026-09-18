@@ -18,3 +18,12 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Generated build output and local debug logs
+/target/
+/frontend/dist/
+/frontend/.vite/
+/frontend/.preview-build/
+/frontend/.render-check/
+/debug-*.log
+/.cursor/debug-*.log

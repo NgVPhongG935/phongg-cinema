@@ -40,6 +40,6 @@ Biến `VITE_API_URL` được đóng vào JavaScript lúc build: sau khi đổi
 
 Render Free tạm dừng Web Service sau 15 phút không có truy cập, lần tiếp theo thường mất khoảng một phút để khởi động lại. Tối ưu source không loại bỏ được thời gian này. Nếu cần luôn phản hồi ngay, dùng instance không tự ngủ; Static Site cho frontend không cần chờ khởi động Java.
 
-Frontend có timeout 90 giây cho API thường và 180 giây cho AI, không tự gửi lại thao tác ghi dữ liệu. Trang chủ có thông báo và nút thử lại khi tải dữ liệu thất bại.
+Frontend chờ tối đa 120 giây, tự retry các truy vấn đọc bị lỗi mạng/5xx, không tự gửi lại thao tác ghi dữ liệu. Danh sách phim được cache trong trình duyệt 6 giờ để lần mở sau hiện nội dung ngay trong lúc API thức dậy. Trang chủ tải phim độc lập với rạp và bộ lọc, nên một API phụ chậm không giữ toàn bộ giao diện.
 
 Tham khảo: https://render.com/docs/free và https://render.com/docs/web-services

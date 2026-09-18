@@ -13,4 +13,4 @@ COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 # Leave memory for metaspace, code cache, threads and native buffers on 512 MB instances.
 ENV SPRING_PROFILES_ACTIVE=render
-ENTRYPOINT ["java", "-Xms64m", "-Xmx256m", "-Xss512k", "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=128m", "-XX:ReservedCodeCacheSize=48m", "-XX:MaxDirectMemorySize=32m", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Xms64m", "-Xmx256m", "-Xss512k", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:MaxMetaspaceSize=128m", "-XX:ReservedCodeCacheSize=48m", "-XX:MaxDirectMemorySize=32m", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]

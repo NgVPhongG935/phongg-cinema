@@ -2,6 +2,126 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Cinematic depth: perspective, moving reflection and a lit poster stage. */
+.cinema-atmosphere { position: absolute; inset: 0; z-index: 15; pointer-events: none; overflow: hidden; }
+.cinema-beam { position: absolute; top: -50%; width: 180px; height: 160%; filter: blur(28px); opacity: .24; transform-origin: top center; }
+.cinema-beam-one { left: 58%; background: linear-gradient(#a78bfa80, transparent); transform: rotate(26deg); }
+.cinema-beam-two { right: 8%; background: linear-gradient(#67e8f950, transparent); transform: rotate(-24deg); }
+.cinema-spark { position: absolute; left: var(--spark-left); top: var(--spark-top); width: 3px; height: 3px; border-radius: 50%; background: #c4b5fd; opacity: .35; box-shadow: 0 0 10px #a78bfa; }
+.poster-echo { position: absolute; right: 0; width: 240px; aspect-ratio: 2/3; border-radius: 24px; overflow: hidden; border: 1px solid #c4b5fd40; pointer-events: none; opacity: .3; }
+.poster-echo-back { transform: translate(-65px, -10px) rotate(-15deg) scale(.88); filter: saturate(.4) brightness(.6); }
+.poster-echo-front { transform: translate(32px, 8px) rotate(8deg) scale(.94); filter: saturate(.6) brightness(.7); }
+.hero-poster { z-index: 1; }
+.poster-hologram-tag { position: absolute; z-index: 3; right: -8px; bottom: 76px; display: flex; align-items: center; gap: 8px; padding: 12px 16px; border: 1px solid #a78bfa80; border-radius: 14px; background: linear-gradient(120deg, #302348df, #0c172bdf); box-shadow: 0 10px 35px #0005, inset 0 1px 0 #ffffff20; backdrop-filter: blur(16px); color: #e9d5ff; font-size: 9px; font-weight: 800; letter-spacing: .12em; transform: rotate(-4deg); pointer-events: none; }
+.depth-surface::before { content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 2; pointer-events: none; background: linear-gradient(125deg, transparent 25%, #67e8f910 38%, #c084fc20 45%, #ffffff18 48%, transparent 60%); opacity: 0; transition: opacity 400ms; }
+.depth-surface:hover::before { opacity: 1; }
+@keyframes cinema-drift { 0%, 100% { transform: translateY(0); opacity: .15; } 50% { transform: translateY(-24px); opacity: .65; } }
+@keyframes cinema-spotlight { 0%, 100% { transform: rotate(26deg); } 50% { transform: rotate(10deg); } }
+@keyframes cinema-tag-float { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-9px) rotate(-2deg); } }
+@media (min-width: 1024px) { .poster-echo { width: 288px; } }
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .cinema-spark { animation: cinema-drift 7s ease-in-out infinite; animation-delay: var(--spark-delay); }
+  .cinema-beam-one { animation: cinema-spotlight 14s ease-in-out infinite; }
+  .poster-hologram-tag { animation: cinema-tag-float 5s ease-in-out infinite; }
+}
+@media (max-width: 767px) { .cinema-beam { opacity: .12; } .cinema-spark:nth-of-type(n+9) { display: none; } }
+@media (prefers-reduced-motion: reduce) { .depth-surface::before { display: none; } }
+.depth-surface {
+  --depth-x: 0deg;
+  --depth-y: 0deg;
+  --light-x: 50%;
+  --light-y: 20%;
+  position: relative;
+  isolation: isolate;
+}
+.depth-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--light-x) var(--light-y), #ffffff28, transparent 48%);
+  opacity: 0;
+  transition: opacity 300ms;
+}
+.depth-surface:hover::after { opacity: 1; }
+.cinema-stage { position: relative; perspective: 1200px; padding-bottom: 35px; }
+.hero-poster {
+  transform: perspective(1200px) rotateX(var(--depth-x)) rotateY(calc(-12deg + var(--depth-y))) rotate(-3deg);
+  box-shadow: 18px 25px 0 -10px #161027, 30px 45px 75px #000a, -12px 0 65px #8b5cf635;
+  transition: transform 350ms ease-out, box-shadow 350ms;
+}
+.cinema-stage::before {
+  content: '';
+  position: absolute;
+  width: 110%;
+  height: 100%;
+  background: radial-gradient(ellipse, #8b5cf62b, transparent 65%);
+  pointer-events: none;
+}
+.cinema-stage-orbit {
+  position: absolute;
+  bottom: -5px;
+  width: 105%;
+  height: 90px;
+  border: 1px solid #a78bfa65;
+  border-radius: 50%;
+  transform: rotate(-8deg);
+  background: radial-gradient(ellipse, #8b5cf630, transparent 65%);
+  box-shadow: 0 0 35px #8b5cf625, inset 0 0 25px #22d3ee15;
+  pointer-events: none;
+}
+.cinema-stage-caption {
+  position: absolute;
+  bottom: 1px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 9px;
+  letter-spacing: .22em;
+  color: #c4b5fd;
+}
+.cinema-stage-caption span { width: 5px; height: 5px; border-radius: 50%; background: #67e8f9; box-shadow: 0 0 12px #67e8f9; }
+.cinema-hero h1 { text-wrap: balance; }
+.cinema-hero > .relative { max-width: 1200px; }
+.cinema-depth-grid {
+  position: absolute;
+  inset: 45% -50% -60%;
+  background-image: linear-gradient(#a78bfa0c 1px, transparent 1px), linear-gradient(90deg, #a78bfa0c 1px, transparent 1px);
+  background-size: 80px 80px;
+  transform: perspective(600px) rotateX(65deg);
+  mask-image: linear-gradient(transparent, #000, transparent);
+}
+article.depth-surface {
+  border-radius: 18px;
+  background: linear-gradient(145deg, #20172fdd, #100c1ddd);
+  box-shadow: 0 8px 24px #0003, inset 0 1px 0 #ffffff0d;
+}
+article.depth-surface > div { padding: 16px; }
+article.depth-surface h3 { letter-spacing: -.02em; }
+.nut-chinh { background-image: linear-gradient(120deg, #8b5cf6, #6d28d9); box-shadow: 0 5px 0 #3b1a70, 0 12px 28px #8b5cf630; }
+header nav > a:first-child > span:first-child { box-shadow: inset 0 1px 0 #ffffff50, 0 5px 16px #8b5cf650; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  article.depth-surface:hover {
+    transform: perspective(1000px) rotateX(var(--depth-x)) rotateY(var(--depth-y)) translateY(-8px);
+    box-shadow: 0 24px 45px #0006, 0 0 22px #8b5cf625;
+  }
+}
+@media (max-width: 767px) {
+  .cinema-hero > .relative { margin-inline: 22px; }
+  article.depth-surface > div { padding: 12px; }
+  header nav { flex-wrap: wrap; gap: 10px; }
+  header nav > a:first-child { font-size: 16px; }
+  header nav > :nth-child(2) { order: 3; flex-basis: 100%; }
+  header nav > div:last-child { margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-poster { transform: none; }
+  .depth-surface::after { display: none; }
+}
+
 @layer base {
   body {
     @apply bg-cinema-950 text-slate-100 antialiased;

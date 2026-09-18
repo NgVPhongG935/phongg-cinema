@@ -30,6 +30,7 @@ class RenderConfigTest {
                 .withProperty("MONGODB_URI", "mongodb://127.0.0.1/alternate");
         alternate.getPropertySources().addLast(env.getPropertySources().get("render"));
         assertThat(alternate.getProperty("spring.data.mongodb.uri")).isEqualTo("mongodb://127.0.0.1/alternate");
+        assertThat(env.getProperty("spring.jmx.enabled")).isEqualTo("false");
     }
 
     @Test

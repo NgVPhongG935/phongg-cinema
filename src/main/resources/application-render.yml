@@ -1,5 +1,7 @@
 # Docker/Render: configure credentials in the service Environment settings.
 spring:
+  jmx:
+    enabled: false
   data:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI:${MONGODB_URI:}}

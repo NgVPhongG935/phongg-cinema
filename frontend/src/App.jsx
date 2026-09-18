@@ -6,7 +6,6 @@ import Footer from './components/Footer'
 import AuthModal from './components/AuthModal'
 import AiChatModal from './components/AiChatModal'
 import { ViTriRapProvider } from './context/ViTriRapContext'
-import { useHinhThucThanhToan } from './hooks/useCatalogQueries'
 import HomePage from './pages/HomePage'
 import ScrollToTop from './components/ScrollToTop'
 
@@ -37,15 +36,9 @@ const ManagePaymentConfigPage = lazy(() => import('./pages/admin/ManagePaymentCo
 const ScanQrPage = lazy(() => import('./pages/staff/ScanQrPage'))
 const BookingSuccessPage = lazy(() => import('./pages/BookingSuccessPage'))
 
-function PrefetchCatalog() {
-  useHinhThucThanhToan()
-  return null
-}
-
 function PublicLayout() {
   return (
     <ViTriRapProvider>
-      <PrefetchCatalog />
       <NenDong />
       <Navbar />
       <main className="relative min-h-[75vh]">

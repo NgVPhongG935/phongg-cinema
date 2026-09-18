@@ -2,6 +2,7 @@ import { Clock, Star, Ticket } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { hienThiDoTuoi } from '../utils/locPhim'
 import AnhPosterPhim from './AnhPosterPhim'
+import DepthSurface from './DepthSurface'
 import { layUrlPosterPhim } from '../utils/anhPosterPhim'
 
 function nhanDoTuoi(tuoi) {
@@ -24,7 +25,7 @@ export default function MovieCard({ phim, chiSo = 0 }) {
   const rating = phim.rating
 
   return (
-    <article
+    <DepthSurface as="article"
       style={{ animationDelay: `${(chiSo % 20) * 40}ms` }}
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-md transition duration-300 hover:-translate-y-1.5 hover:border-purple-400/50 hover:shadow-[0_12px_32px_rgba(168,85,247,0.22)] animate-fade-in-up"
     >
@@ -77,6 +78,6 @@ export default function MovieCard({ phim, chiSo = 0 }) {
           Đặt vé
         </Link>
       </div>
-    </article>
+    </DepthSurface>
   )
 }

@@ -13,6 +13,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -38,6 +40,8 @@ public class MovieServiceImpl implements MovieService {
         return PageRequest.of(phanTrang.getPageNumber(), phanTrang.getPageSize(), sapXep);
     }
 
+    @Cacheable(cacheNames = com.cinema.booking.config.CacheConfig.CACHE_MOVIES,
+            key = "(#tuKhoa ?: '') + '|' + (#trangThai ?: '') + '|' + (#phanTrang == null ? 'default' : #phanTrang.toString())")
     public Page<Movie> layDanhSachPhim(String tuKhoa, String trangThai, Pageable phanTrang) {
         MovieStatus trangThaiPhim = trangThai == null || trangThai.isBlank() ? null : MovieStatus.valueOf(trangThai.toUpperCase());
         Pageable page = chuanHoaPhanTrang(phanTrang);
@@ -54,6 +58,7 @@ public class MovieServiceImpl implements MovieService {
 
     public Movie layChiTietPhim(String id) { return timPhim(id); }
 
+    @CacheEvict(cacheNames = com.cinema.booking.config.CacheConfig.CACHE_MOVIES, allEntries = true)
     public Movie themPhimMoi(MovieDto dto) {
         Movie phim = new Movie();
         ganDuLieu(phim, dto);
@@ -61,6 +66,7 @@ public class MovieServiceImpl implements MovieService {
         nhatKy.info("Da them phim moi vao DB: {} (ID: {})", daLuu.getTitle(), daLuu.getId());
         return daLuu;
     }
+    @CacheEvict(cacheNames = com.cinema.booking.config.CacheConfig.CACHE_MOVIES, allEntries = true)
     public Movie capNhatPhim(String id, MovieDto dto) {
         Movie phim = timPhim(id);
         ganDuLieu(phim, dto);
@@ -68,9 +74,11 @@ public class MovieServiceImpl implements MovieService {
         nhatKy.info("Da cap nhat phim vao DB thanh cong: {} (ID: {})", daLuu.getTitle(), daLuu.getId());
         return daLuu;
     }
+    @CacheEvict(cacheNames = com.cinema.booking.config.CacheConfig.CACHE_MOVIES, allEntries = true)
     public void xoaPhim(String id) { khoPhim.delete(timPhim(id)); }
 
     @Override
+    @CacheEvict(cacheNames = com.cinema.booking.config.CacheConfig.CACHE_MOVIES, allEntries = true)
     public Map<String, Object> dongBoAiHangLoatPhim() {
         List<Movie> danhSachPhim = khoPhim.findAll();
         int soLuongCapNhat = 0;
@@ -145,6 +153,7 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
+    @CacheEvict(cacheNames = com.cinema.booking.config.CacheConfig.CACHE_MOVIES, allEntries = true)
     public Movie dongBoAiChoPhim(String id) {
         Movie phim = timPhim(id);
         String ten = phim.getTitle();

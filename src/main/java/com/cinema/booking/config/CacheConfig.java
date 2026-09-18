@@ -13,9 +13,10 @@ public class CacheConfig {
     public static final String CACHE_REGIONS = "regions";
     public static final String CACHE_CINEMAS = "cinemas";
     public static final String CACHE_PAYMENT_METHODS = "paymentMethods";
+    public static final String CACHE_MOVIES = "movies";
 
     @Bean
     public CacheManager cacheManager() {
-        return new ConcurrentMapCacheManager(CACHE_REGIONS, CACHE_CINEMAS, CACHE_PAYMENT_METHODS);
+        return new ConcurrentMapCacheManager(CACHE_REGIONS, CACHE_CINEMAS, CACHE_PAYMENT_METHODS, CACHE_MOVIES);
     }
 }

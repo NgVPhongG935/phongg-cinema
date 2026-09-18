@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import BannerSection from '../components/BannerSection'
 import CinemaShowtimeList from '../components/CinemaShowtimeList'
@@ -50,9 +50,6 @@ export default function HomePage() {
     const element = movieSectionRef.current
     if (!element) return
     const y = element.getBoundingClientRect().top + window.pageYOffset - OFFSET_NAVBAR
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/4225d522-756d-4686-a16f-b71753054886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'12750d'},body:JSON.stringify({sessionId:'12750d',runId:'scroll-section',hypothesisId:'S',location:'HomePage.jsx:cuonToiDanhSachPhim',message:'scroll to movie section',data:{y,pageYOffset:window.pageYOffset,rectTop:element.getBoundingClientRect().top,offset:OFFSET_NAVBAR},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     window.scrollTo({ top: y, behavior: 'smooth' })
   }
 
@@ -65,13 +62,6 @@ export default function HomePage() {
       ),
     [danhSachPhim, theLoaiDuocChon, rapDuocChon, dinhDangDuocChon, doTuoiDuocChon, kieuSapXep, rapGanNhatId, chiSoLocPhim],
   )
-
-  useEffect(() => {
-    if (dangTai) return
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/4225d522-756d-4686-a16f-b71753054886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'12750d'},body:JSON.stringify({sessionId:'12750d',runId:'grid',hypothesisId:'C',location:'HomePage.jsx:danhSachPhimLoc',message:'grid counts after filter',data:{kichThuocTrang:KICH_THUOC_TRANG_CHU,rawLen:danhSachPhim.length,filteredLen:danhSachPhimLoc.length,tongPhim,tongTrang,trangHienTai,theLoaiDuocChon,rapDuocChon,dinhDangDuocChon,doTuoiDuocChon,innerWidth:typeof window!=='undefined'?window.innerWidth:0},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-  }, [dangTai, danhSachPhim, danhSachPhimLoc, tongPhim, tongTrang, trangHienTai, theLoaiDuocChon, rapDuocChon, dinhDangDuocChon, doTuoiDuocChon])
 
   const chuyenTrang = (trangMoi) => {
     if (trangMoi < 0 || trangMoi >= tongTrang || trangMoi === trangHienTai) return
@@ -120,6 +110,14 @@ export default function HomePage() {
                 className="mt-2 rounded-lg bg-amber-400/20 px-4 py-2 font-semibold disabled:opacity-50">
                 {isFetching ? 'Đang tải…' : 'Thử lại'}
               </button>
+            </div>
+          </div>
+        )}
+        {dangTai && (
+          <div role="status" aria-live="polite" className="mx-auto max-w-7xl px-4 pt-5">
+            <div className="flex items-center gap-3 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 py-3 text-sm text-violet-100 backdrop-blur-md">
+              <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-violet-400 shadow-[0_0_14px_rgba(167,139,250,.9)]" />
+              API Render miễn phí đang khởi động. Lần mở đầu có thể mất khoảng một phút; trang sẽ tự tải lại dữ liệu.
             </div>
           </div>
         )}

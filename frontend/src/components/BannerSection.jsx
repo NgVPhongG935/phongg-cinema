@@ -9,6 +9,7 @@ import { CHI_SO_LOC_RONG, ganMetaPhim, hienThiDoTuoiDayDu } from '../utils/locPh
 import { chuanHoaUrlPoster, layUrlPosterPhim, POSTER_MAC_DINH } from '../utils/anhPosterPhim'
 import ModalTrailer from './ModalTrailer'
 import AnhPosterPhim from './AnhPosterPhim'
+import DepthSurface from './DepthSurface'
 
 const THOI_GIAN_SLIDE = 5000
 const NGUONG_DANH_GIA_CAO = 8
@@ -27,8 +28,11 @@ function PosterBanner3D({ phim }) {
   const title = phim.title || phim.tenPhim || 'Phim'
 
   return (
-    <div className="hidden items-center justify-center md:flex lg:justify-end">
-      <div className="group/poster relative aspect-[2/3] w-60 overflow-hidden rounded-3xl border border-white/15 bg-cinema-900/60 shadow-[0_20px_60px_rgba(168,85,247,0.3)] ring-1 ring-white/10 transition-all duration-500 hover:scale-[1.03] hover:shadow-[0_25px_70px_rgba(217,70,239,0.5)] hover:ring-fuchsia-400/40 lg:w-72">
+    <div className="cinema-stage hidden items-center justify-center md:flex lg:justify-end">
+      <div className="cinema-stage-orbit" aria-hidden="true" />
+      <div className="poster-echo poster-echo-back" aria-hidden="true"><AnhPosterPhim src={posterUrl} alt="" className="h-full w-full object-cover" /></div>
+      <div className="poster-echo poster-echo-front" aria-hidden="true"><AnhPosterPhim src={posterUrl} alt="" className="h-full w-full object-cover" /></div>
+      <DepthSurface className="hero-poster group/poster relative aspect-[2/3] w-60 overflow-hidden rounded-3xl border border-white/15 bg-cinema-900/60 ring-1 ring-white/10 lg:w-72">
         <AnhPosterPhim
           src={posterUrl}
           alt={title}
@@ -37,7 +41,9 @@ function PosterBanner3D({ phim }) {
         />
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-fuchsia-600/20 via-transparent to-cyan-400/10 opacity-40 transition-opacity duration-500 group-hover/poster:opacity-80" />
-      </div>
+      </DepthSurface>
+      <div className="poster-hologram-tag" aria-hidden="true"><Sparkles size={14} /> CINEMA EXPERIENCE</div>
+      <div className="cinema-stage-caption" aria-hidden="true"><span /> ĐIỆN ẢNH TRONG TẦM TAY</div>
     </div>
   )
 }
@@ -50,7 +56,7 @@ export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null
 
   const chiSo = chiSoLocPhim || CHI_SO_LOC_RONG
 
-  const canReuseHome = Array.isArray(danhSachPhim) && danhSachPhim.length > 0
+  const canReuseHome = Array.isArray(danhSachPhim)
   const { data: phimFallback } = useQuery({
     queryKey: queryKeys.movies({ trangThai: 'SHOWING', page: 0, size: SO_PHIM_BANNER }),
     queryFn: () => layDanhSachPhim({ trangThai: 'SHOWING', page: 0, size: SO_PHIM_BANNER }),
@@ -84,10 +90,17 @@ export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null
 
   return (
     <section
-      className="relative h-[500px] w-full overflow-hidden bg-[#0b0813] sm:h-[540px] md:h-[580px] lg:h-[620px]"
+      className="cinema-hero relative h-[500px] w-full overflow-hidden bg-[#0b0813] sm:h-[540px] md:h-[580px] lg:h-[620px]"
       onMouseEnter={() => datDangTamDung(true)}
       onMouseLeave={() => datDangTamDung(false)}
+      onFocusCapture={() => datDangTamDung(true)}
+      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) datDangTamDung(false) }}
     >
+      <div className="cinema-atmosphere" aria-hidden="true">
+        <div className="cinema-beam cinema-beam-one" />
+        <div className="cinema-beam cinema-beam-two" />
+        {Array.from({ length: 16 }, (_, index) => <i key={index} className="cinema-spark" style={{ '--spark-left': `${(index * 37 + 11) % 100}%`, '--spark-top': `${(index * 19 + 7) % 100}%`, '--spark-delay': `${index * -0.7}s` }} />)}
+      </div>
       {/* 1. XỬ LÝ ẢNH NỀN BACKDROP & MULTI-LAYER GRADIENT OVERLAY */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {danhSachPhimBanner.map((phim, index) => {
@@ -146,6 +159,7 @@ export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null
           return (
             <div
               key={phim.id}
+              inert={!dangHien ? true : undefined}
               className={`absolute inset-x-4 inset-y-0 flex items-center transition-all duration-700 ease-out sm:inset-x-6 lg:inset-x-8 ${
                 dangHien
                   ? 'pointer-events-auto z-10 translate-x-0 opacity-100'

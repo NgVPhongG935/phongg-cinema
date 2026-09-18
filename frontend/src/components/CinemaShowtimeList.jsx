@@ -53,12 +53,6 @@ export default function CinemaShowtimeList({ maRap, tenRap }) {
       .then((ds) => {
         const movies = Array.isArray(ds) ? ds : []
         const afterHours = movies.map(gomSuatPhim)
-        // #region agent log
-        const suat = movies.flatMap((p) => [...(p.showtimes || []), ...(p.danhSachSuat || [])])
-        const after = getUniqueShowtimes(suat)
-        const hours = gioChieuDuyNhat(suat)
-        fetch('http://127.0.0.1:7246/ingest/4225d522-756d-4686-a16f-b71753054886',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'12750d'},body:JSON.stringify({sessionId:'12750d',runId:'post-fix',hypothesisId:'C',location:'CinemaShowtimeList.jsx:fetch',message:'home cinema-day payload',data:{movieCount:movies.length,suatCount:suat.length,afterDedupe:after.length,uniqueHours:hours.length,hoursAfterGom:afterHours.reduce((n,p)=>(p.showtimes||[]).length,0),sampleHours:(afterHours[0]?.showtimes||[]).map((s)=>s.startTime)},timestamp:Date.now()})}).catch(()=>{})
-        // #endregion
         datDanhSachPhim(afterHours)
       })
       .catch(() => datDanhSachPhim([]))
@@ -73,7 +67,10 @@ export default function CinemaShowtimeList({ maRap, tenRap }) {
   )
 
   return (
-    <section className="mt-6 rounded-3xl border border-white/10 bg-gradient-to-br from-cinema-900/60 via-cinema-950/80 to-fuchsia-950/20 p-4 shadow-2xl backdrop-blur-xl sm:p-6">
+    <section
+      id="cinema-showtimes-section"
+      className="mt-6 scroll-mt-[90px] rounded-3xl border border-white/10 bg-gradient-to-br from-cinema-900/60 via-cinema-950/80 to-fuchsia-950/20 p-4 shadow-2xl backdrop-blur-xl sm:p-6"
+    >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-fuchsia-300">

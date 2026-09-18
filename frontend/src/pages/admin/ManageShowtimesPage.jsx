@@ -79,16 +79,21 @@ export default function ManageShowtimesPage() {
     const tu = new Date(`${hangLoat.tuNgay}T00:00:00`)
     const den = new Date(`${hangLoat.denNgay}T23:59:59`)
     return lichSu
-      .filter((suat) => suat.maRap === hangLoat.maRap && suat.maPhong === hangLoat.maPhong)
       .filter((suat) => {
-        const thoiGian = new Date(suat.thoiGianBatDau)
+        const maRap = suat.maRap || suat.cinemaId
+        const maPhong = suat.maPhong || suat.roomId
+        return maRap === hangLoat.maRap && maPhong === hangLoat.maPhong
+      })
+      .filter((suat) => {
+        const thoiGian = new Date(suat.thoiGianBatDau || suat.startTime)
         return thoiGian >= tu && thoiGian <= den
       })
-      .sort((a, b) => new Date(a.thoiGianBatDau) - new Date(b.thoiGianBatDau))
+      .sort((a, b) => new Date(a.thoiGianBatDau || a.startTime) - new Date(b.thoiGianBatDau || b.startTime))
   }, [lichSu, hangLoat.maRap, hangLoat.maPhong, hangLoat.tuNgay, hangLoat.denNgay])
 
   const suatDaCoNhomNgay = useMemo(() => suatDaCoTheoPhong.reduce((kq, suat) => {
-    const ngay = suat.thoiGianBatDau.slice(0, 10)
+    const ngay = String(suat.thoiGianBatDau || suat.startTime || '').slice(0, 10)
+    if (!ngay) return kq
     if (!kq[ngay]) kq[ngay] = []
     kq[ngay].push(suat)
     return kq
@@ -104,15 +109,17 @@ export default function ManageShowtimesPage() {
   const lichSuLoc = useMemo(() => {
     const chuoi = tuKhoa.trim().toLowerCase()
     return lichSu.filter((suat) => {
-      if (locRap && suat.maRap !== locRap) return false
-      if (locPhim && suat.maPhim !== locPhim) return false
+      const maRap = suat.maRap || suat.cinemaId
+      const maPhim = suat.maPhim || suat.movieId
+      if (locRap && maRap !== locRap) return false
+      if (locPhim && maPhim !== locPhim) return false
       if (!chuoi) return true
       const vanBan = [
-        suat.movieTitle || suat.title,
-        suat.tenRap,
-        suat.maPhong,
-        suat.dinhDang,
-        dinhDangNgay(suat.thoiGianBatDau),
+        suat.movieTitle || suat.tenPhim || suat.title,
+        suat.tenRap || suat.cinemaName,
+        suat.maPhong || suat.roomId,
+        suat.dinhDang || suat.format,
+        dinhDangNgay(suat.thoiGianBatDau || suat.startTime),
       ].join(' ').toLowerCase()
       return vanBan.includes(chuoi)
     })
@@ -126,10 +133,13 @@ export default function ManageShowtimesPage() {
     datThongBao('')
     if (suat) {
       datDuLieu({
-        maPhim: suat.maPhim, maRap: suat.maRap, maPhong: suat.maPhong,
-        thoiGianBatDau: chuyenLocalDatetime(suat.thoiGianBatDau),
-        thoiGianKetThuc: chuyenLocalDatetime(suat.thoiGianKetThuc),
-        giaVeTu: String(suat.giaVeTu || 69000), dinhDang: suat.dinhDang || '2D Lồng Tiếng',
+        maPhim: suat.maPhim || suat.movieId || '',
+        maRap: suat.maRap || suat.cinemaId || '',
+        maPhong: suat.maPhong || suat.roomId || '',
+        thoiGianBatDau: chuyenLocalDatetime(suat.thoiGianBatDau || suat.startTime),
+        thoiGianKetThuc: chuyenLocalDatetime(suat.thoiGianKetThuc || suat.endTime),
+        giaVeTu: String(suat.giaVeTu ?? suat.price ?? 69000),
+        dinhDang: suat.dinhDang || suat.format || '2D Lồng Tiếng',
       })
     } else datDuLieu(DU_LIEU_RONG)
     datDangMo(true)
@@ -333,7 +343,16 @@ export default function ManageShowtimesPage() {
   const luuSuatChieu = async (suKien) => {
     suKien.preventDefault()
     try {
-      const duLieuGui = { ...duLieu, giaVeTu: Number(duLieu.giaVeTu) }
+      const chuanHoaIso = (giatri) => {
+        if (!giatri) return giatri
+        return giatri.length === 16 ? `${giatri}:00` : giatri
+      }
+      const duLieuGui = {
+        ...duLieu,
+        thoiGianBatDau: chuanHoaIso(duLieu.thoiGianBatDau),
+        thoiGianKetThuc: chuanHoaIso(duLieu.thoiGianKetThuc),
+        giaVeTu: Number(duLieu.giaVeTu),
+      }
       if (suatSua) await capNhatSuatChieu(suatSua.id, duLieuGui)
       else await taoSuatChieu(duLieuGui)
       datThongBao(suatSua ? 'Cập nhật suất chiếu thành công.' : 'Tạo suất chiếu thành công.')
@@ -342,7 +361,7 @@ export default function ManageShowtimesPage() {
       datDuLieu(DU_LIEU_RONG)
       taiDuLieu()
     } catch (loi) {
-      datThongBao(loi.response?.data?.message || 'Không thể lưu suất chiếu.')
+      datThongBao(layThongBaoLoiApi(loi) || loi.response?.data?.message || 'Không thể lưu suất chiếu.')
     }
   }
 
@@ -698,10 +717,10 @@ export default function ManageShowtimesPage() {
           <tbody>
             {lichSuLoc.map((suat) => (
               <tr key={suat.id} className="border-t border-white/10">
-                <td className="py-3 pr-4 font-medium text-white">{suat.movieTitle || suat.title}</td>
-                <td className="py-3 pr-4 text-slate-300">{suat.tenRap}<br /><span className="text-xs text-slate-500">Phòng {suat.maPhong}</span></td>
-                <td className="py-3 pr-4 text-slate-300">{dinhDangNgay(suat.thoiGianBatDau)}</td>
-                <td className="py-3 pr-4 text-slate-300">{dinhDangGiaNgan(suat.giaVeTu)} · {suat.dinhDang}</td>
+                <td className="py-3 pr-4 font-medium text-white">{suat.movieTitle || suat.tenPhim || suat.title}</td>
+                <td className="py-3 pr-4 text-slate-300">{suat.tenRap || suat.cinemaName}<br /><span className="text-xs text-slate-500">Phòng {suat.maPhong || suat.roomId}</span></td>
+                <td className="py-3 pr-4 text-slate-300">{dinhDangNgay(suat.thoiGianBatDau || suat.startTime)}</td>
+                <td className="py-3 pr-4 text-slate-300">{dinhDangGiaNgan(suat.giaVeTu ?? suat.price)} · {suat.dinhDang || suat.format}</td>
                 <td className="py-3">
                   <div className="flex gap-2">
                     <button type="button" onClick={() => moBieuMau(suat)} className="rounded-lg border border-violet-400/30 p-2 text-violet-200 hover:bg-violet-500/10"><Pencil size={16} /></button>
