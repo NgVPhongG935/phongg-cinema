@@ -1,6 +1,9 @@
 package com.cinema.booking.controller;
 
 import com.cinema.booking.dto.AdminDashboardDto;
+import com.cinema.booking.dto.AdminDashboardActivityDto;
+import com.cinema.booking.dto.AdminDashboardChartsDto;
+import com.cinema.booking.dto.AdminDashboardSummaryDto;
 import com.cinema.booking.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,5 +21,23 @@ public class AdminDashboardController {
     @PreAuthorize("hasRole('ADMIN')")
     public AdminDashboardDto layTongQuan() {
         return dichVuTongQuan.layTongQuan();
+    }
+
+    @GetMapping("/summary")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AdminDashboardSummaryDto layTomTat() {
+        return dichVuTongQuan.layTomTat();
+    }
+
+    @GetMapping("/charts")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AdminDashboardChartsDto layBieuDo() {
+        return dichVuTongQuan.layBieuDo();
+    }
+
+    @GetMapping("/activity")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AdminDashboardActivityDto layHoatDong() {
+        return dichVuTongQuan.layHoatDong();
     }
 }

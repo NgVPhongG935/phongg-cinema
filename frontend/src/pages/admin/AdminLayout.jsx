@@ -236,7 +236,7 @@ function SidebarNoiDung({ tenHienThi, menuDangMo, chuyenCumMenu, thoatTaiKhoan, 
         </div>
       </div>
 
-      <nav className="admin-sidebar-nav mt-6 space-y-1 scrollbar-thin">
+      <nav className="admin-sidebar-nav mt-6 space-y-1">
         <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">Menu</p>
         <MucMenuDon muc={MUC_DON} onNavigate={onNavigate} />
         <p className="mb-2 mt-5 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">Quản lý</p>
@@ -321,13 +321,13 @@ export default function AdminLayout() {
       )}
 
       <aside
-        className={`admin-sidebar fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/[0.06] p-5 transition-transform duration-300 lg:static lg:translate-x-0 ${
+        className={`admin-sidebar fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col overflow-y-auto border-r border-white/[0.06] p-5 transition-transform duration-300 lg:static lg:translate-x-0 lg:overflow-visible ${
           moSidebarMobile ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-fuchsia-500/[0.07] via-transparent to-cyan-500/[0.04]" />
         <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-fuchsia-500/20 to-transparent" />
-        <div className="relative flex min-h-0 flex-1 flex-col">
+        <div className="relative flex min-h-full flex-1 flex-col">
           <button
             type="button"
             onClick={dongSidebarMobile}

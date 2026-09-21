@@ -7,7 +7,9 @@
     "doc": "docs"
   },
   "scripts": {
-    "dev": "npm --prefix frontend run dev",
+    "dev": "node scripts/dev-all.js",
+    "dev:backend": "start-backend.cmd",
+    "dev:frontend": "npm --prefix frontend run dev",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

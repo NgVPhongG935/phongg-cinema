@@ -1,3 +1,5 @@
+import { BASE_URL } from '../services/apiClient'
+
 /**
  * Tiện ích xử lý URL hình ảnh (TMDb, HTTPS trực tiếp, proxy và fallback)
  */
@@ -10,7 +12,7 @@ export const getImageUrl = (url) => {
     return s
   }
   // Nếu là đường dẫn cục bộ hoặc cần qua backend API
-  return `https://phongg-cinema-api.onrender.com/api/v1/media/proxy?url=${encodeURIComponent(s)}`
+  return `${BASE_URL}/media/proxy?url=${encodeURIComponent(s)}`
 }
 
 /**

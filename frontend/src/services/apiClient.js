@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://phongg-cinema-api.onrender.com/api/v1'
+const BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? '/api/v1' : 'https://phongg-cinema-api.onrender.com/api/v1')
 
 const axiosClient = axios.create({
   baseURL: BASE_URL,

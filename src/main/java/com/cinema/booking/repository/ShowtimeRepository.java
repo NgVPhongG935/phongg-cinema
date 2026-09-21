@@ -1,6 +1,7 @@
 package com.cinema.booking.repository;
 
 import com.cinema.booking.document.Showtime;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -8,6 +9,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ShowtimeRepository extends MongoRepository<Showtime, String> {
+    String FIELDS_DASHBOARD = "{ 'seats': 0, 'trangThaiGhe': 0 }";
+
     @Query("{ $and: [ { $or: [ { movieId: ?0 }, { maPhim: ?0 } ] }, { $or: [ { startTime: { $gte: ?1, $lt: ?2 } }, { thoiGianBatDau: { $gte: ?1, $lt: ?2 } } ] } ] }")
     List<Showtime> findByMaPhimAndThoiGianBatDauBetween(String maPhim, LocalDateTime batDauNgay, LocalDateTime ketThucNgay);
 
@@ -34,4 +37,15 @@ public interface ShowtimeRepository extends MongoRepository<Showtime, String> {
 
     @Query(value = "{}", sort = "{ startTime: -1, thoiGianBatDau: -1 }")
     List<Showtime> findAllByOrderByThoiGianBatDauDesc();
+
+    @Query(
+            value = "{ $or: [ { startTime: { $gte: ?0, $lt: ?1 } }, { thoiGianBatDau: { $gte: ?0, $lt: ?1 } } ] }",
+            count = true)
+    long countDashboardByThoiGianBatDauBetween(LocalDateTime batDau, LocalDateTime ketThuc);
+
+    @Query(
+            value = "{ $or: [ { startTime: { $gte: ?0 } }, { thoiGianBatDau: { $gte: ?0 } } ] }",
+            fields = FIELDS_DASHBOARD,
+            sort = "{ startTime: 1, thoiGianBatDau: 1 }")
+    List<Showtime> findDashboardUpcoming(LocalDateTime tuThoiDiem, Pageable gioiHan);
 }

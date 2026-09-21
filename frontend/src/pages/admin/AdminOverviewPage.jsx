@@ -30,7 +30,7 @@ import {
   YAxis,
 } from 'recharts'
 import { useAuth } from '../../context/AuthContext'
-import { layTongQuanAdmin } from '../../services/adminDashboardService'
+import { layBieuDoAdmin, layHoatDongAdmin, layTomTatAdmin } from '../../services/adminDashboardService'
 import { dinhDangTien } from '../../utils/formatters'
 
 const THE_THONG_KE = [
@@ -100,16 +100,89 @@ function SkeletonDashboard() {
   )
 }
 
+function SkeletonBieuDo() {
+  return (
+    <div className="space-y-6" aria-label="Đang tải biểu đồ">
+      <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+        <div className="admin-card h-[390px] skeleton" />
+        <div className="admin-card h-[390px] skeleton" />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <div className="admin-card h-[360px] skeleton" />
+        <div className="admin-card h-[360px] skeleton" />
+      </div>
+    </div>
+  )
+}
+
+function SkeletonHoatDong() {
+  return (
+    <div className="space-y-6" aria-label="Đang tải hoạt động gần đây">
+      <div className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
+        <div className="admin-card h-80 skeleton" />
+        <div className="admin-card h-80 skeleton" />
+      </div>
+      <div className="admin-card h-64 skeleton" />
+    </div>
+  )
+}
+
+function LoiTaiKhoi({ noiDung }) {
+  return (
+    <div className="admin-card rounded-3xl p-6 text-center text-sm text-rose-300">
+      {noiDung}
+    </div>
+  )
+}
+
 export default function AdminOverviewPage() {
   const { nguoiDung } = useAuth()
-  const [duLieu, datDuLieu] = useState(null)
-  const [dangTai, datDangTai] = useState(true)
+  const [duLieu, datDuLieu] = useState({})
+  const [dangTaiTomTat, datDangTaiTomTat] = useState(true)
+  const [dangTaiBieuDo, datDangTaiBieuDo] = useState(true)
+  const [dangTaiHoatDong, datDangTaiHoatDong] = useState(true)
+  const [loiTomTat, datLoiTomTat] = useState(false)
+  const [loiBieuDo, datLoiBieuDo] = useState(false)
+  const [loiHoatDong, datLoiHoatDong] = useState(false)
 
   useEffect(() => {
-    layTongQuanAdmin()
-      .then(datDuLieu)
-      .catch(() => datDuLieu(null))
-      .finally(() => datDangTai(false))
+    let conHoatDong = true
+
+    const napTheoThuTu = async () => {
+      try {
+        const tomTat = await layTomTatAdmin()
+        if (!conHoatDong) return
+        datDuLieu(tomTat)
+      } catch {
+        if (conHoatDong) datLoiTomTat(true)
+        return
+      } finally {
+        if (conHoatDong) datDangTaiTomTat(false)
+      }
+
+      try {
+        const bieuDo = await layBieuDoAdmin()
+        if (!conHoatDong) return
+        datDuLieu((hienTai) => ({ ...hienTai, ...bieuDo }))
+      } catch {
+        if (conHoatDong) datLoiBieuDo(true)
+      } finally {
+        if (conHoatDong) datDangTaiBieuDo(false)
+      }
+
+      try {
+        const hoatDong = await layHoatDongAdmin()
+        if (!conHoatDong) return
+        datDuLieu((hienTai) => ({ ...hienTai, ...hoatDong }))
+      } catch {
+        if (conHoatDong) datLoiHoatDong(true)
+      } finally {
+        if (conHoatDong) datDangTaiHoatDong(false)
+      }
+    }
+
+    napTheoThuTu()
+    return () => { conHoatDong = false }
   }, [])
 
   const tenHienThi = nguoiDung?.hoTen || localStorage.getItem('hoTen') || 'Admin'
@@ -154,9 +227,9 @@ export default function AdminOverviewPage() {
     return duLieu.theoPhuongThuc.map((m) => ({ name: m.nhan, value: m.soVe }))
   }, [duLieu])
 
-  if (dangTai) return <SkeletonDashboard />
+  if (dangTaiTomTat) return <SkeletonDashboard />
 
-  if (!duLieu) {
+  if (loiTomTat) {
     return (
       <div className="admin-hero rounded-3xl p-10 text-center">
         <p className="text-slate-300">Không tải được dữ liệu tổng quan. Hãy restart backend và đăng nhập lại bằng tài khoản admin.</p>
@@ -198,7 +271,11 @@ export default function AdminOverviewPage() {
             </div>
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-5 py-3 text-right">
               <p className="text-[10px] uppercase tracking-wider text-emerald-300/80">Doanh thu tích lũy</p>
-              <p className="text-2xl font-black text-emerald-300">{dinhDangTien(duLieu.doanhThu)}</p>
+              {dangTaiBieuDo ? (
+                <div className="mt-1 h-7 w-32 rounded-lg skeleton" />
+              ) : (
+                <p className="text-2xl font-black text-emerald-300">{dinhDangTien(duLieu.doanhThu)}</p>
+              )}
             </div>
           </div>
         </div>
@@ -215,7 +292,7 @@ export default function AdminOverviewPage() {
         <TheKpiLon
           nhan="Vé Web hôm nay"
           giaTri={duLieu.veWebHomNay ?? 0}
-          phuDe={`Tổng Web: ${duLieu.veWeb ?? 0} vé`}
+          phuDe={dangTaiBieuDo ? 'Đang tải tổng số vé Web…' : `Tổng Web: ${duLieu.veWeb ?? 0} vé`}
           icon={Monitor}
           mau="from-violet-500 to-indigo-600"
         />
@@ -246,6 +323,12 @@ export default function AdminOverviewPage() {
         })}
       </section>
 
+      {dangTaiBieuDo ? (
+        <SkeletonBieuDo />
+      ) : loiBieuDo ? (
+        <LoiTaiKhoi noiDung="Không tải được biểu đồ. Phần tổng quan phía trên vẫn sử dụng bình thường." />
+      ) : (
+        <>
       <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <article className="admin-card p-5 md:p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -391,6 +474,15 @@ export default function AdminOverviewPage() {
         </article>
       </section>
 
+        </>
+      )}
+
+      {dangTaiHoatDong ? (
+        <SkeletonHoatDong />
+      ) : loiHoatDong ? (
+        <LoiTaiKhoi noiDung="Không tải được hoạt động gần đây." />
+      ) : (
+        <>
       <section className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
         <article className="admin-card p-6">
           <h2 className="text-lg font-bold text-white">Thao tác nhanh</h2>
@@ -421,7 +513,7 @@ export default function AdminOverviewPage() {
             <Link to="/admin/showtimes" className="text-sm text-fuchsia-300 hover:underline">Xem tất cả</Link>
           </div>
           <div className="space-y-3">
-            {duLieu.suatSapToi.length === 0 ? (
+            {(duLieu.suatSapToi ?? []).length === 0 ? (
               <p className="text-sm text-slate-500">Chưa có suất chiếu sắp tới.</p>
             ) : duLieu.suatSapToi.map((suat) => (
               <div key={suat.id} className="admin-glass flex items-center justify-between rounded-2xl px-4 py-3">
@@ -445,7 +537,7 @@ export default function AdminOverviewPage() {
           <Link to="/admin/tickets" className="text-sm text-fuchsia-300 hover:underline">Quản lý vé</Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {duLieu.veGanDay.length === 0 ? (
+          {(duLieu.veGanDay ?? []).length === 0 ? (
             <p className="text-sm text-slate-500">Chưa có vé nào được bán.</p>
           ) : duLieu.veGanDay.map((ve) => (
             <div key={ve.id} className="admin-glass rounded-2xl px-4 py-3">
@@ -459,6 +551,8 @@ export default function AdminOverviewPage() {
           ))}
         </div>
       </section>
+        </>
+      )}
     </div>
   )
 }

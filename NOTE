@@ -1,5 +1,16 @@
 === CHAY DU AN QLBVXP ===
 
+0) CHAY TAT CA TRONG MOT TERMINAL (khuyen dung)
+   cd d:\QLBVXP
+
+   .\start-all.cmd
+
+   Hoac:
+   npm.cmd run dev
+
+   Lenh nay chay dong thoi backend port 8080 va frontend port 5173.
+   Nhan Ctrl+C mot lan de dung ca hai.
+
 1) BACKEND (Spring Boot - port 8080)
    cd d:\QLBVXP
 
