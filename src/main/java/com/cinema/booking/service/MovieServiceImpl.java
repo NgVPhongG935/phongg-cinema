@@ -4,6 +4,7 @@ import com.cinema.booking.document.Movie;
 import com.cinema.booking.document.MovieStatus;
 import com.cinema.booking.dto.MovieDto;
 import com.cinema.booking.dto.ThongTinPhimAiDto;
+import com.cinema.booking.util.MovieMediaUrl;
 import com.cinema.booking.repository.MovieRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -93,7 +94,8 @@ public class MovieServiceImpl implements MovieService {
 
             try {
                 ThongTinPhimAiDto aiDto = geminiMovieService.taoThongTinPhim(ten);
-                if (aiDto != null) {
+                if (coDuLieuAi(aiDto)) {
+                    if (aiDto.getLanguage() != null && !aiDto.getLanguage().isBlank()) phim.setLanguage(aiDto.getLanguage());
                     if (aiDto.getDirector() != null && !aiDto.getDirector().isBlank()) {
                         phim.setDirector(aiDto.getDirector());
                     }
@@ -148,7 +150,7 @@ public class MovieServiceImpl implements MovieService {
         return Map.of(
                 "totalUpdated", soLuongCapNhat,
                 "totalMovies", tongSoPhim,
-                "message", "Đã cập nhật toàn bộ phim thành công!"
+                "message", "Đã cập nhật " + soLuongCapNhat + "/" + tongSoPhim + " phim có dữ liệu tra cứu."
         );
     }
 
@@ -160,7 +162,8 @@ public class MovieServiceImpl implements MovieService {
 
         if (ten != null && !ten.isBlank()) {
             ThongTinPhimAiDto aiDto = geminiMovieService.taoThongTinPhim(ten);
-            if (aiDto != null) {
+            if (coDuLieuAi(aiDto)) {
+                if (aiDto.getLanguage() != null && !aiDto.getLanguage().isBlank()) phim.setLanguage(aiDto.getLanguage());
                 if (aiDto.getDirector() != null && !aiDto.getDirector().isBlank()) {
                     phim.setDirector(aiDto.getDirector());
                 }
@@ -200,6 +203,11 @@ public class MovieServiceImpl implements MovieService {
     }
 
     private Movie timPhim(String id) { return khoPhim.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay phim")); }
+    private boolean coDuLieuAi(ThongTinPhimAiDto dto) {
+        return dto != null && (dto.getDescription() != null || dto.getDuration() != null || dto.getGenre() != null
+                || dto.getActors() != null || dto.getDirector() != null || dto.getPosterUrl() != null
+                || dto.getTrailerUrl() != null || dto.getAgeRating() != null || dto.getLanguage() != null);
+    }
     private void ganDuLieu(Movie phim, MovieDto dto) {
         if (dto == null) return;
         if (dto.getTitle() != null && !dto.getTitle().isBlank()) phim.setTitle(dto.getTitle().trim());
@@ -220,11 +228,21 @@ public class MovieServiceImpl implements MovieService {
         if (dto.getDescription() != null && !dto.getDescription().isBlank()) phim.setDescription(dto.getDescription().trim());
         else if (dto.getMoTa() != null && !dto.getMoTa().isBlank()) phim.setDescription(dto.getMoTa().trim());
 
-        if (dto.getPosterUrl() != null && !dto.getPosterUrl().isBlank()) phim.setPosterUrl(dto.getPosterUrl().trim());
-        else if (dto.getAnhPoster() != null && !dto.getAnhPoster().isBlank()) phim.setPosterUrl(dto.getAnhPoster().trim());
-
-        if (dto.getTrailerUrl() != null && !dto.getTrailerUrl().isBlank()) phim.setTrailerUrl(dto.getTrailerUrl().trim());
-        else if (dto.getDuongDanTrailer() != null && !dto.getDuongDanTrailer().isBlank()) phim.setTrailerUrl(dto.getDuongDanTrailer().trim());
+        String poster = dto.getPosterUrl() != null ? dto.getPosterUrl() : dto.getAnhPoster();
+        if (poster != null) {
+            poster = poster.trim();
+            if (!poster.isEmpty() && !poster.startsWith("/uploads/") && MovieMediaUrl.poster(poster) == null)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Poster không hợp lệ; không dùng URL ảnh ngẫu nhiên hoặc ảnh mẫu.");
+            phim.setPosterUrl(poster);
+        }
+        String trailer = dto.getTrailerUrl() != null ? dto.getTrailerUrl() : dto.getDuongDanTrailer();
+        if (trailer != null) {
+            trailer = trailer.trim();
+            String normalized = MovieMediaUrl.trailer(trailer);
+            if (!trailer.isEmpty() && normalized == null)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trailer phải là URL video YouTube, không phải URL tìm kiếm.");
+            phim.setTrailerUrl(normalized == null ? "" : normalized);
+        }
 
         if (dto.getAudioUrl() != null && !dto.getAudioUrl().isBlank()) phim.setAudioUrl(dto.getAudioUrl().trim());
 

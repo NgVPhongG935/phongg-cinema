@@ -1,5 +1,6 @@
 import { Camera, CheckCircle2, Clock3, Film, History, ImageUp, Loader2, QrCode, ScanLine, User } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import QRCode from 'react-qr-code'
 import { Html5Qrcode } from 'html5-qrcode'
 import ConfirmPrintModal from '../../components/ConfirmPrintModal'
@@ -209,7 +210,16 @@ function ChiTietVeQuet({ ve, thongTinPhim, dangSoat, onSoatVe, onInVe }) {
 }
 
 export default function ScanQrPage() {
-  const [tab, datTab] = useState(TAB.SOAT)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = searchParams.get('tab') === TAB.LICH_SU ? TAB.LICH_SU : TAB.SOAT
+  const datTab = (value) => {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (value === TAB.LICH_SU) next.set('tab', value)
+      else next.delete('tab')
+      return next
+    }, { replace: true })
+  }
   const [maQrCode, datMaQrCode] = useState('')
   const [maQuet, datMaQuet] = useState('')
   const [ve, datVe] = useState(null)

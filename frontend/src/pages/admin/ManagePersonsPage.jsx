@@ -231,7 +231,7 @@ export default function ManagePersonsPage() {
           className="nut-chinh flex items-center gap-2 px-5 py-2.5 text-sm font-bold shadow-lg shadow-fuchsia-600/30"
         >
           <Plus size={18} />
-          + Thêm Nghệ Sĩ Mới
+          Thêm Nghệ Sĩ Mới
         </button>
       </div>
 

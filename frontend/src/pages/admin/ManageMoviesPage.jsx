@@ -2,9 +2,12 @@ import AdminModalOverlay, { AdminModalBody, AdminModalFooter, AdminModalHeader }
 import AnhPosterPhim from '../../components/AnhPosterPhim'
 import { CheckCircle2, Copy, Loader2, Pencil, Play, Plus, Search, Sparkles, StopCircle, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { taoThongTinPhimAi } from '../../services/aiService'
+import { taoThongTinPhimAi, timLuaChonPhimAi } from '../../services/aiService'
 import { capNhatPhim, layDanhSachPhim, themPhim, xoaPhim } from '../../services/movieService'
 import { layThongBaoLoiApi } from '../../utils/layThongBaoLoiApi'
+import { gopThongTinPhimAi, posterAiHopLe, trailerAiHopLe, xoaPosterNgauNhien } from '../../utils/thongTinPhimAi'
+import ModalTrailer from '../../components/ModalTrailer'
+import { chayDongBoPhim } from '../../utils/dongBoPhimAi'
 
 const duLieuRong = {
   title: '',
@@ -60,6 +63,19 @@ export default function ManageMoviesPage() {
   const [dangSoanAi, datDangSoanAi] = useState(false)
   const [thongBaoModal, datThongBaoModal] = useState(null)
   const [thongBao, datThongBao] = useState(null)
+  const [xemTrailer, datXemTrailer] = useState(false)
+  const [loiXemPoster, datLoiXemPoster] = useState(false)
+  const [luaChonPhim, datLuaChonPhim] = useState([])
+  const [maPhimTraCuu, datMaPhimTraCuu] = useState('')
+  useEffect(() => { datLoiXemPoster(false) }, [duLieu.posterUrl])
+  const yeuCauAiRef = useRef(0)
+  useEffect(() => {
+    if (!dangMo) {
+      yeuCauAiRef.current += 1
+      datDangSoanAi(false)
+      datXemTrailer(false)
+    }
+  }, [dangMo])
 
   // State cho Tiến Trình AI Đồng Bộ Tuần Tự
   const [hienModalTienDo, datHienModalTienDo] = useState(false)
@@ -71,7 +87,8 @@ export default function ManageMoviesPage() {
     phimHienTai: '',
     danhSachLog: [],
   })
-  const dungTienDoRef = useRef(false)
+  const dongBoControllerRef = useRef(null)
+  useEffect(() => () => dongBoControllerRef.current?.abort(), [])
   const khungLogRef = useRef(null)
 
   const taiDanhSach = (tuKhoaTim = tuKhoa, trangThai = tabTrangThai) => layDanhSachPhim({
@@ -102,9 +119,17 @@ export default function ManageMoviesPage() {
   }
 
   const moBieuMau = (phim = null) => {
+    datLuaChonPhim([])
+    datMaPhimTraCuu('')
+    yeuCauAiRef.current += 1
+    datDangSoanAi(false)
     datPhimSua(phim)
     datThongBao(null)
     datThongBaoModal(null)
+    if (phim && xoaPosterNgauNhien(phim).posterUrl !== phim.posterUrl) {
+      datThongBaoModal({ loai: 'canhBao', noiDung: 'Poster cũ là ảnh ngẫu nhiên, không phải poster phim. Đã loại bỏ khỏi biểu mẫu; bấm AI soạn thông tin để tra cứu lại hoặc nhập link poster thật.' })
+      phim = xoaPosterNgauNhien(phim)
+    }
     datDuLieu(phim ? {
       ...phim,
       title: phim.title || '',
@@ -149,6 +174,13 @@ export default function ManageMoviesPage() {
       if (!duLieuGui.ageRating) {
         throw new Error('Vui lòng chọn giới hạn tuổi.')
       }
+      if (duLieuGui.posterUrl && !duLieuGui.posterUrl.startsWith('/uploads/') && !posterAiHopLe(duLieuGui.posterUrl)) {
+        throw new Error('Poster không hợp lệ. Nhập URL ảnh poster thật hoặc để trống; không dùng ảnh ngẫu nhiên/ảnh mẫu.')
+      }
+      if (duLieuGui.trailerUrl && !trailerAiHopLe(duLieuGui.trailerUrl)) {
+        throw new Error('Trailer phải là link video YouTube, không phải link tìm kiếm. Bạn có thể để trống nếu chưa có.')
+      }
+      if (duLieuGui.trailerUrl) duLieuGui.trailerUrl = trailerAiHopLe(duLieuGui.trailerUrl)
       if (phimSua) await capNhatPhim(phimSua.id || phimSua._id, duLieuGui)
       else await themPhim(duLieuGui)
       datThongBao({ loai: 'thanhCong', noiDung: phimSua ? 'Cập nhật phim thành công!' : 'Thêm phim mới thành công!' })
@@ -156,7 +188,7 @@ export default function ManageMoviesPage() {
       await taiDanhSach()
     } catch (loi) {
       const noiDung = loi.response?.data?.message || loi.message || 'Không thể lưu phim. Vui lòng thử lại.'
-      datThongBao({ loai: 'loi', noiDung })
+      datThongBaoModal({ loai: 'loi', noiDung })
     } finally {
       datDangLuu(false)
     }
@@ -175,6 +207,12 @@ export default function ManageMoviesPage() {
 
   const xuLyThayDoi = (suKien) => {
     const { name, value } = suKien.target
+    if (name === 'title') {
+      datLuaChonPhim([])
+      datMaPhimTraCuu('')
+      yeuCauAiRef.current += 1
+      datDangSoanAi(false)
+    }
     datDuLieu((cu) => ({
       ...cu,
       [name]: name === 'ageRating' ? chuanHoaGioiHanTuoi(value) : value,
@@ -185,147 +223,37 @@ export default function ManageMoviesPage() {
    * Logic Xử Lý Đồng Bộ Tuần Tự Từng Phim (Sequential Auto-Sync)
    */
   const xuLyDongBoTuTuTungPhim = async () => {
-    if (tienDo.dangChay) return
-    dungTienDoRef.current = false
-
-    // Lấy toàn bộ phim hiện có
-    let danhSach = danhSachPhim
-    try {
-      const phanHoi = await layDanhSachPhim({ size: 200 })
-      danhSach = phanHoi.content || phanHoi || danhSachPhim
-    } catch {
-      // Giữ danhSachPhim hiện tại
-    }
-
-    if (!danhSach || danhSach.length === 0) {
-      datThongBao({ loai: 'canhBao', noiDung: 'Không có phim nào trong cơ sở dữ liệu để đồng bộ.' })
-      return
-    }
-
-    const tongSo = danhSach.length
-    datTienDo({
-      dangChay: true,
-      tongSo,
-      daXong: 0,
-      phanTram: 0,
-      phimHienTai: '',
-      danhSachLog: [`🚀 Bắt đầu quy trình AI cập nhật tự động cho ${tongSo} bộ phim...`],
-    })
+    if (dongBoControllerRef.current) return
+    const controller = new AbortController()
+    dongBoControllerRef.current = controller
     datHienModalTienDo(true)
-
-    let daXongDem = 0
-    let soLuongThanhCong = 0
-
-    for (let i = 0; i < tongSo; i++) {
-      if (dungTienDoRef.current) {
-        datTienDo((cu) => ({
-          ...cu,
-          dangChay: false,
-          danhSachLog: [...cu.danhSachLog, `⚠️ Quản trị viên đã dừng tiến trình (${daXongDem}/${tongSo} phim).`],
-        }))
-        break
-      }
-
-      const phim = danhSach[i]
-      const idPhim = phim.id || phim._id
-      const title = phim.title || `Phim #${i + 1}`
-
-      datTienDo((cu) => ({
-        ...cu,
-        phimHienTai: title,
-        danhSachLog: [...cu.danhSachLog, `⏳ [${i + 1}/${tongSo}] Đang AI tìm thông tin cho: «${title}»...`],
-      }))
-
-      try {
-        // Bước 1: Gọi AI soạn thông tin
-        const thongTinAi = await taoThongTinPhimAi(title)
-
-        // Bước 2: Chuẩn bị payload chuẩn tiếng Anh để lưu vào DB
-        const duLieuCapNhat = {
-          ...phim,
-          title: thongTinAi.title || title,
-          duration: Number(thongTinAi.duration ?? phim.duration ?? 120),
-          genres: Array.isArray(thongTinAi.genres)
-            ? thongTinAi.genres
-            : String(thongTinAi.genre || '').split(',').map((s) => s.trim()).filter(Boolean),
-          actors: Array.isArray(thongTinAi.actors)
-            ? thongTinAi.actors
-            : String(thongTinAi.actors || '').split(',').map((s) => s.trim()).filter(Boolean),
-          director: thongTinAi.director || phim.director || '',
-          language: thongTinAi.language || phim.language || 'Tiếng Việt',
-          ageRating: chuanHoaGioiHanTuoi(thongTinAi.ageRating) || phim.ageRating || 'P',
-          description: thongTinAi.description || phim.description || '',
-          posterUrl: thongTinAi.posterUrl || phim.posterUrl || '',
-          trailerUrl: thongTinAi.trailerUrl || phim.trailerUrl || '',
-          status: phim.status || 'SHOWING',
-          rating: Number(thongTinAi.rating ?? phim.rating ?? 8.5),
-        }
-
-        // Bước 3: GỌI API LƯU VÀO DATABASE
-        if (idPhim) {
-          await capNhatPhim(idPhim, duLieuCapNhat)
-        }
-
-        // Cập nhật ngay lập tức vào state để UI thay đổi trực tiếp
-        datDanhSachPhim((cu) =>
-          cu.map((p) => ((p.id === idPhim || p._id === idPhim) ? { ...p, ...duLieuCapNhat, id: idPhim } : p))
-        )
-
-        soLuongThanhCong++
-        daXongDem++
-
-        datTienDo((cu) => ({
-          ...cu,
-          daXong: daXongDem,
-          phanTram: Math.round((daXongDem / tongSo) * 100),
-          danhSachLog: [
-            ...cu.danhSachLog,
-            `✅ [${i + 1}/${tongSo}] Đã lưu vào DB: «${title}» (Poster: ${duLieuCapNhat.posterUrl ? 'OK' : '—'}, Trailer: ${duLieuCapNhat.trailerUrl ? 'OK' : '—'})`,
-          ],
-        }))
-      } catch (loi) {
-        daXongDem++
-        console.error(`Lỗi cập nhật phim ${title}:`, loi)
-        datTienDo((cu) => ({
-          ...cu,
-          daXong: daXongDem,
-          phanTram: Math.round((daXongDem / tongSo) * 100),
-          danhSachLog: [
-            ...cu.danhSachLog,
-            `❌ [${i + 1}/${tongSo}] Bỏ qua lỗi tại «${title}»: ${layThongBaoLoiApi(loi)}`,
-          ],
-        }))
-      }
-
-      // Bước 4: Delay 1.5 giây tránh rate limit
-      if (i < tongSo - 1 && !dungTienDoRef.current) {
-        await new Promise((resolve) => setTimeout(resolve, 1500))
-      }
+    try {
+      await chayDongBoPhim({
+        loadPage: layDanhSachPhim,
+        generate: taoThongTinPhimAi,
+        save: capNhatPhim,
+        signal: controller.signal,
+        onProgress: datTienDo,
+        onSaved: (id, payload) => datDanhSachPhim((cu) =>
+          cu.map((phim) => (phim.id === id || phim._id === id ? { ...phim, ...payload } : phim))),
+      })
+    } finally {
+      dongBoControllerRef.current = null
+      await taiDanhSach()
     }
-
-    datTienDo((cu) => ({
-      ...cu,
-      dangChay: false,
-      phimHienTai: '',
-      danhSachLog: [
-        ...cu.danhSachLog,
-        `🎉 Hoàn thành! Đã cập nhật và lưu vào DB ${soLuongThanhCong}/${tongSo} bộ phim.`,
-      ],
-    }))
-
-    await taiDanhSach()
   }
 
   const dungTienDo = () => {
-    dungTienDoRef.current = true
+    const controller = dongBoControllerRef.current
+    if (!controller || controller.signal.aborted) return
+    controller.abort()
     datTienDo((cu) => ({
       ...cu,
-      dangChay: false,
-      danhSachLog: [...cu.danhSachLog, '🛑 Đang gửi tín hiệu dừng...'],
+      danhSachLog: [...cu.danhSachLog, '🛑 Đang dừng; chờ ghi nhận kết quả nếu có lượt lưu đang chạy...'],
     }))
   }
 
-  const soanThongTinAi = async () => {
+  const soanThongTinAi = async (luaChon = null) => {
     const title = duLieu.title.trim()
     if (!title) {
       datThongBaoModal({ loai: 'loi', noiDung: 'Vui lòng nhập tên phim trước khi dùng AI.' })
@@ -333,29 +261,39 @@ export default function ManageMoviesPage() {
     }
 
     datDangSoanAi(true)
+    const maYeuCau = ++yeuCauAiRef.current
     datThongBaoModal(null)
     try {
-      const thongTin = await taoThongTinPhimAi(title)
-      datDuLieu((cu) => ({
-        ...cu,
-        duration: thongTin.duration ?? cu.duration,
-        genres: Array.isArray(thongTin.genres) ? thongTin.genres.join(', ') : (thongTin.genre || cu.genres),
-        actors: Array.isArray(thongTin.actors) ? thongTin.actors.join(', ') : (thongTin.actors || cu.actors),
-        director: thongTin.director || cu.director,
-        ageRating: chuanHoaGioiHanTuoi(thongTin.ageRating) || cu.ageRating,
-        description: thongTin.description || cu.description,
-        posterUrl: thongTin.posterUrl || cu.posterUrl,
-        trailerUrl: thongTin.trailerUrl || cu.trailerUrl,
-      }))
-      const canhBao = thongTin.canhBao
+      let lookupWarning = ''
+      let chosen = Number.isSafeInteger(luaChon?.id) ? luaChon : null
+      if (!chosen) {
+        const { options, warning } = await timLuaChonPhimAi(title)
+        lookupWarning = warning
+        if (maYeuCau !== yeuCauAiRef.current) return
+        const normalize = (value) => String(value || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/^(the|an|a)\s+/, '').replace(/[^\p{L}\p{N}]/gu, '')
+        const exact = options.filter((item) => [item.title, item.originalTitle].some((name) => normalize(name) === normalize(title)))
+        if (exact.length === 1) chosen = exact[0]
+        else if (options.length) {
+          datLuaChonPhim(options)
+          datMaPhimTraCuu(String(options[0].id))
+          datThongBaoModal({ loai: 'thongTin', noiDung: 'Tìm thấy nhiều phim hoặc tên gần đúng. Chọn đúng phần phim bên dưới rồi bấm Lấy thông tin phim.' })
+          return
+        }
+      }
+      const tenTraCuu = chosen ? (chosen.originalTitle || chosen.title) : title
+      const thongTin = await taoThongTinPhimAi(tenTraCuu, chosen?.source !== 'wikipedia' && chosen?.id > 0 ? chosen.id : null)
+      if (maYeuCau !== yeuCauAiRef.current) return
+      datDuLieu((cu) => ({ ...gopThongTinPhimAi(cu, thongTin, true).duLieu, title: chosen ? tenTraCuu : cu.title }))
+      datLuaChonPhim([])
+      const canhBao = [lookupWarning, gopThongTinPhimAi(duLieu, thongTin, true).canhBao].filter(Boolean).join(' ')
       datThongBaoModal({
         loai: canhBao ? 'canhBao' : 'thanhCong',
         noiDung: canhBao || 'AI đã tự động soạn thông tin phim thành công!',
       })
     } catch (loi) {
-      datThongBaoModal({ loai: 'loi', noiDung: layThongBaoLoiApi(loi) })
+      if (maYeuCau === yeuCauAiRef.current) datThongBaoModal({ loai: 'loi', noiDung: layThongBaoLoiApi(loi) })
     } finally {
-      datDangSoanAi(false)
+      if (maYeuCau === yeuCauAiRef.current) datDangSoanAi(false)
     }
   }
 
@@ -539,10 +477,9 @@ export default function ManageMoviesPage() {
                   <div className="mb-2 flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-300">
                       {tienDo.dangChay
-                        ? `Đang cập nhật: ${tienDo.phimHienTai || '...'}`
-                        : tienDo.daXong === tienDo.tongSo && tienDo.tongSo > 0
-                          ? 'Đã hoàn thành toàn bộ phim!'
-                          : 'Tiến trình đã dừng'}
+                        ? tienDo.phase === 'loading' ? 'Đang tải danh sách phim...' : `Đang cập nhật: ${tienDo.phimHienTai || '...'}`
+                        : tienDo.phase === 'completed' ? 'Đã xử lý toàn bộ phim'
+                          : tienDo.phase === 'failed' ? 'Tiến trình gặp lỗi' : 'Tiến trình đã dừng'}
                     </span>
                     <span className="font-mono font-bold text-fuchsia-300">
                       {tienDo.daXong} / {tienDo.tongSo} ({tienDo.phanTram}%)
@@ -556,6 +493,8 @@ export default function ManageMoviesPage() {
                     />
                   </div>
                 </div>
+
+                <p className="text-xs text-slate-400">Đã lưu: {tienDo.daLuu || 0} · Bỏ qua: {tienDo.boQua || 0} · Lỗi: {tienDo.loi || 0}</p>
 
                 {/* Khung Console Log Realtime */}
                 <div>
@@ -600,10 +539,11 @@ export default function ManageMoviesPage() {
                     <button
                       type="button"
                       onClick={dungTienDo}
+                      disabled={dongBoControllerRef.current?.signal.aborted}
                       className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/20 px-4 py-2 text-xs font-bold text-rose-200 transition hover:bg-rose-500/30"
                     >
                       <StopCircle size={15} />
-                      Dừng lại
+                      {dongBoControllerRef.current?.signal.aborted ? 'Đang dừng...' : 'Dừng lại'}
                     </button>
                   ) : (
                     <button
@@ -673,7 +613,9 @@ export default function ManageMoviesPage() {
               {thongBaoModal && (
                 <div
                   className={`sm:col-span-2 rounded-xl border px-4 py-3 text-sm ${
-                    thongBaoModal.loai === 'canhBao'
+                    thongBaoModal.loai === 'thongTin'
+                      ? 'border-sky-500/40 bg-sky-500/10 text-sky-200'
+                      : thongBaoModal.loai === 'canhBao'
                       ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
                       : thongBaoModal.loai === 'thanhCong'
                         ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
@@ -681,6 +623,18 @@ export default function ManageMoviesPage() {
                   }`}
                 >
                   {thongBaoModal.noiDung}
+                </div>
+              )}
+
+              {luaChonPhim.length > 0 && (
+                <div className="sm:col-span-2 rounded-xl border border-violet-400/30 bg-violet-500/5 p-4">
+                  <label htmlFor="phimTraCuu" className="mb-2 block text-sm font-semibold text-violet-200">Chọn phim muốn lấy thông tin</label>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <select id="phimTraCuu" value={maPhimTraCuu} onChange={(event) => datMaPhimTraCuu(event.target.value)} className="o-nhap min-w-0 flex-1" disabled={dangSoanAi}>
+                      {luaChonPhim.map((item) => <option key={item.id} value={item.id}>{item.originalTitle || item.title}{item.year ? ` (${item.year})` : ''}</option>)}
+                    </select>
+                    <button type="button" disabled={dangSoanAi} onClick={() => soanThongTinAi(luaChonPhim.find((item) => String(item.id) === maPhimTraCuu))} className="nut-chinh shrink-0 text-sm">Lấy thông tin phim</button>
+                  </div>
                 </div>
               )}
 
@@ -771,11 +725,12 @@ export default function ManageMoviesPage() {
                 {duLieu.posterUrl && (
                   <div className="mt-2 flex items-center gap-3">
                     <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-800">
-                      <AnhPosterPhim src={duLieu.posterUrl} alt="Xem trước poster" className="h-full w-full object-cover" />
+                      <AnhPosterPhim key={duLieu.posterUrl} src={duLieu.posterUrl} alt="Xem trước poster" className="h-full w-full object-cover" onError={() => datLoiXemPoster(true)} />
                     </div>
-                    <span className="text-xs text-slate-400">Xem trước poster</span>
+                    <span className={`text-xs ${loiXemPoster ? 'text-amber-300' : 'text-slate-400'}`}>{loiXemPoster ? 'Không tải được ảnh từ URL này. Hãy đổi link poster.' : 'Xem trước poster'}</span>
                   </div>
                 )}
+                <a href={`https://www.themoviedb.org/search?query=${encodeURIComponent(duLieu.title)}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-violet-300 hover:text-white">Tìm poster phim trên TMDB</a>
               </NhanTruong>
 
               <NhanTruong htmlFor="trailerUrl" tieuDe="Đường dẫn Trailer YouTube (URL)" className="sm:col-span-2">
@@ -787,6 +742,11 @@ export default function ManageMoviesPage() {
                   className="o-nhap w-full"
                   placeholder="https://www.youtube.com/watch?v=..."
                 />
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
+                  {trailerAiHopLe(duLieu.trailerUrl) && <button type="button" onClick={() => datXemTrailer(true)} className="inline-flex items-center gap-1.5 text-violet-300 hover:text-white"><Play size={14} />Xem thử trailer</button>}
+                  <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${duLieu.title} official trailer`)}`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white">Tìm trailer trên YouTube</a>
+                </div>
+                {duLieu.trailerUrl && !trailerAiHopLe(duLieu.trailerUrl) && <p className="mt-2 text-xs text-amber-300">Link này chưa phát được. Hãy chọn một video YouTube và dán link video vào đây.</p>}
               </NhanTruong>
 
               <NhanTruong htmlFor="status" tieuDe="Trạng thái chiếu" className="sm:col-span-2">
@@ -827,6 +787,7 @@ export default function ManageMoviesPage() {
           </form>
         </AdminModalOverlay>
       )}
+      <ModalTrailer mo={xemTrailer} movie={{ ...duLieu, genres: String(duLieu.genres || '').split(',').filter(Boolean), actors: String(duLieu.actors || '').split(',').filter(Boolean) }} onDong={() => datXemTrailer(false)} />
     </div>
   )
 }

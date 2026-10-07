@@ -51,8 +51,8 @@ export default function Navbar() {
           {nguoiDung ? (
             <>
               {laStaff && (
-                <Link to="/staff/scan-qr" className="hidden items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-violet-600 px-3 py-2 text-sm font-bold shadow-lg shadow-violet-900/40 transition hover:brightness-110 sm:flex">
-                  <QrCode size={16} />📱 Soát Vé QR
+                <Link to="/staff" className="hidden items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-violet-600 px-3 py-2 text-sm font-bold shadow-lg shadow-violet-900/40 transition hover:brightness-110 sm:flex">
+                  <QrCode size={16} />Cổng nhân viên
                 </Link>
               )}
               {laAdmin && (
@@ -77,8 +77,8 @@ export default function Navbar() {
                     <Link to="/my-tickets" onClick={() => datMoMenu(false)} className="block px-4 py-3 text-sm hover:bg-white/5">Vé của tôi</Link>
                     <Link to="/profile" onClick={() => datMoMenu(false)} className="block px-4 py-3 text-sm hover:bg-white/5">Thông tin tài khoản</Link>
                     {(laStaff || laAdmin) && (
-                      <Link to="/staff/scan-qr" onClick={() => datMoMenu(false)} className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-sky-300 hover:bg-sky-500/10">
-                        <QrCode size={16} />Cổng nhân viên soát vé
+                      <Link to="/staff" onClick={() => datMoMenu(false)} className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-sky-300 hover:bg-sky-500/10">
+                        <QrCode size={16} />Cổng nhân viên
                       </Link>
                     )}
                     {laAdmin && (

@@ -34,6 +34,8 @@ public class ExternalHttpConfig {
     private RestClient client(HttpClient httpClient, int timeoutMs) {
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
         factory.setReadTimeout(timeoutMs);
-        return RestClient.builder().requestFactory(factory).build();
+        return RestClient.builder().requestFactory(factory)
+                .defaultHeader(org.springframework.http.HttpHeaders.USER_AGENT, "PhongGCinema/1.0 (movie metadata lookup; https://phongg-cinema.onrender.com)")
+                .build();
     }
 }

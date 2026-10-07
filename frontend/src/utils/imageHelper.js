@@ -7,6 +7,9 @@ export const getImageUrl = (url) => {
   if (!url || typeof url !== 'string') return 'https://placehold.co/300x450?text=No+Image'
   const s = url.trim()
   if (!s) return 'https://placehold.co/300x450?text=No+Image'
+  try {
+    if (/(^|\.)(picsum\.photos)$/.test(new URL(s).hostname)) return 'https://placehold.co/300x450?text=No+Image'
+  } catch { /* Handle relative image paths below. */ }
   // Nếu là link TMDb hoặc link HTTPS ngoài, dùng trực tiếp (không qua proxy)
   if (s.startsWith('http://') || s.startsWith('https://')) {
     return s

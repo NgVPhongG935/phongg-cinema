@@ -20,6 +20,11 @@ public class AiChatController {
     private final AiService dichVuAi;
     private final GeminiMovieService dichVuPhimAi;
 
+    @GetMapping("/movie-options")
+    public java.util.List<com.cinema.booking.dto.LuaChonPhimAiDto> timLuaChonPhim(@RequestParam String title) {
+        return dichVuPhimAi.timLuaChonPhim(title);
+    }
+
     @PostMapping(value = "/chat", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> guiCauHoiToiAi(@RequestBody AiChatRequestDto noiDung) {
         String cauHoi = noiDung.getUserMessage();
@@ -50,7 +55,7 @@ public class AiChatController {
         if (tenPhim.isBlank() && title != null && !title.isBlank()) tenPhim = title;
         if (tenPhim.isBlank() && keyword != null && !keyword.isBlank()) tenPhim = keyword;
 
-        ThongTinPhimAiDto ketQua = dichVuPhimAi.taoThongTinPhim(tenPhim);
+        ThongTinPhimAiDto ketQua = dichVuPhimAi.taoThongTinPhim(tenPhim, yeuCau != null ? yeuCau.getTmdbId() : null);
         return ResponseEntity.ok(ketQua);
     }
 }

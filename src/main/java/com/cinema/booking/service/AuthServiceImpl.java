@@ -5,6 +5,7 @@ import com.cinema.booking.document.User;
 import com.cinema.booking.document.UserRole;
 import com.cinema.booking.dto.*;
 import com.cinema.booking.repository.UserRepository;
+import com.cinema.booking.util.MatKhauDangKy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -47,8 +48,9 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Họ và tên không được để trống");
         }
         String matKhau = yeuCau.layMatKhau();
-        if (matKhau.length() < 6) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu phải có ít nhất 6 ký tự");
+        String loiMatKhau = MatKhauDangKy.layLoi(matKhau);
+        if (!loiMatKhau.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, loiMatKhau);
         }
         if (khoNguoiDung.findByEmail(email).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email này đã được sử dụng");

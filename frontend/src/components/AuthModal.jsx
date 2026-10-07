@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext'
 import { dangNhap, dangKy } from '../services/authService'
 import { layThongBaoLoiAuth } from '../utils/layThongBaoLoiApi'
 import { layDuongDanSauDangNhap } from '../utils/dieuHuongSauDangNhap'
+import { layLoiMatKhauDangKy } from '../utils/matKhauDangKy'
+import HuongDanMatKhau from './HuongDanMatKhau'
 
 export default function AuthModal() {
   const dieuHuong = useNavigate()
@@ -69,12 +71,13 @@ export default function AuthModal() {
     suKien.preventDefault()
     datLoi('')
 
-    if (duLieu.matKhau.length < 6) {
-      datLoi('Mật khẩu phải có ít nhất 6 ký tự')
+    const loiMatKhau = layLoiMatKhauDangKy(duLieu.matKhau)
+    if (loiMatKhau) {
+      datLoi(loiMatKhau)
       return
     }
 
-    if (duLieu.xacNhanMatKhau && duLieu.matKhau !== duLieu.xacNhanMatKhau) {
+    if (duLieu.matKhau !== duLieu.xacNhanMatKhau) {
       datLoi('Mật khẩu xác nhận không khớp')
       return
     }
@@ -180,11 +183,14 @@ export default function AuthModal() {
               type="password"
               value={duLieu.matKhau}
               onChange={xuLyThayDoi}
-              placeholder="Tối thiểu 6 ký tự"
+              placeholder={laDangKy ? 'Tạo mật khẩu (ít nhất 8 ký tự)' : 'Nhập mật khẩu'}
+              autoComplete={laDangKy ? 'new-password' : 'current-password'}
+              minLength={laDangKy ? 8 : undefined}
               required
             />
           </div>
 
+          {laDangKy && <HuongDanMatKhau matKhau={duLieu.matKhau} />}
           {laDangKy && (
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-300">Xác nhận mật khẩu</label>
@@ -195,6 +201,7 @@ export default function AuthModal() {
                 value={duLieu.xacNhanMatKhau}
                 onChange={xuLyThayDoi}
                 placeholder="Nhập lại mật khẩu"
+                autoComplete="new-password"
                 required
               />
             </div>

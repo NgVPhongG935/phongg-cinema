@@ -8,6 +8,7 @@ import PersonDetailModal from '../components/PersonDetailModal'
 import { layChiTietPhim } from '../services/movieService'
 import { hienThiDoTuoiDayDu } from '../utils/locPhim'
 import { layUrlPosterPhim } from '../utils/anhPosterPhim'
+import { layVideoIdYoutube } from '../utils/chuyenLinkYoutube'
 
 export default function MovieDetailPage() {
   const { id } = useParams()
@@ -53,7 +54,7 @@ export default function MovieDetailPage() {
   const description = phim.description
   const trailerUrl = phim.trailerUrl
   const rawPoster = layUrlPosterPhim(phim)
-  const coTrailer = Boolean(trailerUrl?.trim())
+  const coTrailer = Boolean(layVideoIdYoutube(trailerUrl))
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
@@ -122,10 +123,10 @@ export default function MovieDetailPage() {
             <Link to={`/movies/${id}/schedule`} className="nut-chinh inline-flex items-center gap-2">
               <Ticket size={18} />Chọn suất chiếu
             </Link>
-            {coTrailer && (
+            {(
               <button type="button" onClick={() => datMoTrailer(true)} className="nut-glass-trailer inline-flex items-center gap-2">
                 <Play size={18} fill="currentColor" />
-                Xem Trailer
+                {coTrailer ? 'Xem Trailer' : 'Tìm Trailer'}
               </button>
             )}
           </div>

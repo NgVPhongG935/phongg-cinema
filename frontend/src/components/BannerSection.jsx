@@ -10,16 +10,23 @@ import { chuanHoaUrlPoster, layUrlPosterPhim, POSTER_MAC_DINH } from '../utils/a
 import ModalTrailer from './ModalTrailer'
 import AnhPosterPhim from './AnhPosterPhim'
 import DepthSurface from './DepthSurface'
+import { layVideoIdYoutube } from '../utils/chuyenLinkYoutube'
 
 const THOI_GIAN_SLIDE = 5000
 const NGUONG_DANH_GIA_CAO = 8
 
-function taoDanhSachBanner(danhSachNguon, chiSo) {
-  return (danhSachNguon || [])
+function taoDanhSachBanner(danhSachNguon, phimTruoc) {
+  const danhSach = (danhSachNguon || [])
     .filter((phim) => (phim.status || phim.trangThai || 'SHOWING') === 'SHOWING')
-    .map((phim) => ganMetaPhim(phim, chiSo || CHI_SO_LOC_RONG))
-    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-    .slice(0, SO_PHIM_BANNER)
+  for (let i = danhSach.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[danhSach[i], danhSach[j]] = [danhSach[j], danhSach[i]]
+  }
+  if (danhSach.length > 1 && String(danhSach[0].id) === phimTruoc) {
+    const indexKhac = danhSach.findIndex((phim) => String(phim.id) !== phimTruoc)
+    if (indexKhac > 0) [danhSach[0], danhSach[indexKhac]] = [danhSach[indexKhac], danhSach[0]]
+  }
+  return danhSach.slice(0, SO_PHIM_BANNER)
 }
 
 function PosterBanner3D({ phim }) {
@@ -53,6 +60,9 @@ export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null
   const [indexPhimHienTai, datIndexPhimHienTai] = useState(0)
   const [dangTamDung, datDangTamDung] = useState(false)
   const [moModalTrailer, datMoModalTrailer] = useState(false)
+  const [phimBannerTruoc] = useState(() => {
+    try { return sessionStorage.getItem('cinema:last-banner-movie') } catch { return null }
+  })
 
   const chiSo = chiSoLocPhim || CHI_SO_LOC_RONG
 
@@ -64,11 +74,19 @@ export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null
     staleTime: 60 * 1000,
   })
 
-  const danhSachPhimBanner = useMemo(() => {
-    if (canReuseHome) return taoDanhSachBanner(danhSachPhim, chiSo)
+  const phimBannerNgauNhien = useMemo(() => {
+    if (canReuseHome) return taoDanhSachBanner(danhSachPhim, phimBannerTruoc)
     const raw = phimFallback?.content || (Array.isArray(phimFallback) ? phimFallback : [])
-    return taoDanhSachBanner(raw, chiSo)
-  }, [canReuseHome, danhSachPhim, phimFallback, chiSo])
+    return taoDanhSachBanner(raw, phimBannerTruoc)
+  }, [canReuseHome, danhSachPhim, phimFallback, phimBannerTruoc])
+  const danhSachPhimBanner = useMemo(
+    () => phimBannerNgauNhien.map((phim) => ganMetaPhim(phim, chiSo)),
+    [phimBannerNgauNhien, chiSo],
+  )
+  useEffect(() => {
+    datIndexPhimHienTai(0)
+    datMoModalTrailer(false)
+  }, [phimBannerNgauNhien])
   const chuyenSlide = useCallback((huong) => {
     datIndexPhimHienTai((cu) => {
       const tong = danhSachPhimBanner.length
@@ -80,13 +98,16 @@ export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null
   }, [danhSachPhimBanner.length])
 
   useEffect(() => {
-    if (dangTamDung || danhSachPhimBanner.length <= 1) return undefined
+    if (dangTamDung || moModalTrailer || danhSachPhimBanner.length <= 1) return undefined
     const boDem = setInterval(() => chuyenSlide('sau'), THOI_GIAN_SLIDE)
     return () => clearInterval(boDem)
-  }, [dangTamDung, danhSachPhimBanner.length, chuyenSlide])
+  }, [dangTamDung, moModalTrailer, danhSachPhimBanner.length, chuyenSlide])
 
   const phimHienTai = danhSachPhimBanner[indexPhimHienTai]
-  const coTrailer = Boolean(phimHienTai?.trailerUrl?.trim())
+  useEffect(() => {
+    if (phimHienTai?.id == null) return
+    try { sessionStorage.setItem('cinema:last-banner-movie', String(phimHienTai.id)) } catch { /* Storage may be unavailable. */ }
+  }, [phimHienTai?.id])
 
   return (
     <section
@@ -223,14 +244,14 @@ export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null
                       <span>ĐẶT VÉ NGAY</span>
                     </Link>
 
-                    {phim.trailerUrl?.trim() && (
+                    {(
                       <button
                         type="button"
                         onClick={() => datMoModalTrailer(true)}
                         className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white shadow-lg backdrop-blur-md transition hover:border-white/40 hover:bg-white/20 hover:scale-105"
                       >
                         <Play size={16} fill="currentColor" className="text-fuchsia-300" />
-                        <span>Xem Trailer</span>
+                        <span>{layVideoIdYoutube(phim.trailerUrl) ? 'Xem Trailer' : 'Tìm Trailer'}</span>
                       </button>
                     )}
                   </div>
@@ -291,7 +312,7 @@ export default function BannerSection({ danhSachPhim = null, chiSoLocPhim = null
 
       {/* Modal xem Trailer trực tiếp */}
       <ModalTrailer
-        mo={moModalTrailer && coTrailer}
+        mo={moModalTrailer}
         movie={phimHienTai}
         title={phimHienTai?.title || phimHienTai?.tenPhim}
         trailerUrl={phimHienTai?.trailerUrl || phimHienTai?.urlTrailer}

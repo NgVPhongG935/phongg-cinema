@@ -16,6 +16,8 @@ public class TaoThongTinPhimAiRequest {
     @JsonAlias({"tenPhim", "title", "movieName", "name", "keyword"})
     private String title;
 
+    private Long tmdbId;
+
     public String getTenPhim() {
         return title;
     }

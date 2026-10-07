@@ -10,6 +10,7 @@
 - `APP_FRONTEND_URL`: URL frontend thực tế, không có dấu `/` cuối.
 - `APP_BACKEND_URL`: URL backend thực tế; có thể bỏ qua nếu dùng URL Render mặc định vì ứng dụng đọc `RENDER_EXTERNAL_URL`.
 - `TMDB_ENABLED=true` và `TMDB_API_KEY`: cần cho tính năng lấy thông tin phim từ TMDB.
+  Có thể dùng API key v3 hoặc API Read Access Token (Bearer). Nếu thiếu cấu hình hoặc không tìm được phim, AI sẽ báo các trường còn thiếu và giữ dữ liệu cũ, không tạo poster ngẫu nhiên hay link tìm kiếm làm trailer. Trailer được lấy thêm bằng tiếng Anh nếu TMDB chưa có video tiếng Việt.
 - Nếu dùng Gemini: `GEMINI_ENABLED=true`, `GEMINI_API_KEY` và `GEMINI_MODEL` là model tài khoản đang hỗ trợ.
 
 Không đưa mật khẩu/API key vào source. Profile render yêu cầu URI database qua Environment, không dùng tài khoản mặc định trong cấu hình cũ. Trong MongoDB Atlas, cho phép địa chỉ outbound của dịch vụ Render trong Network Access và kiểm tra quyền tài khoản database.

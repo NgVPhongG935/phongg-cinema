@@ -34,6 +34,8 @@ const ManageRegionsPage = lazy(() => import('./pages/admin/ManageRegionsPage'))
 const ManageTicketsPage = lazy(() => import('./pages/admin/ManageTicketsPage'))
 const ManagePaymentConfigPage = lazy(() => import('./pages/admin/ManagePaymentConfigPage'))
 const ScanQrPage = lazy(() => import('./pages/staff/ScanQrPage'))
+const StaffLayout = lazy(() => import('./pages/staff/StaffLayout'))
+const StaffOverviewPage = lazy(() => import('./pages/staff/StaffOverviewPage'))
 const BookingSuccessPage = lazy(() => import('./pages/BookingSuccessPage'))
 
 function PublicLayout() {
@@ -85,7 +87,11 @@ export default function App() {
         <Route path="users" element={<ManageUsersPage />} />
         <Route path="staffs" element={<ManageStaffsPage />} />
       </Route>
-      <Route path="/staff/scan-qr" element={<ScanQrPage />} />
+      <Route path="/staff" element={<StaffLayout />}>
+        <Route index element={<StaffOverviewPage />} />
+        <Route path="scan-qr" element={<ScanQrPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+      </Route>
       <Route path="/*" element={<PublicLayout />} />
       </Routes>
     </Suspense>

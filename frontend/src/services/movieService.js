@@ -1,6 +1,6 @@
 import apiClient from './apiClient'
 
-export const layDanhSachPhim = (thamSo = {}) => apiClient.get('/movies', { params: thamSo }).then((phanHoi) => phanHoi.data)
+export const layDanhSachPhim = (thamSo = {}, config = {}) => apiClient.get('/movies', { params: thamSo, ...config }).then((phanHoi) => phanHoi.data)
 export const layChiTietPhim = (id) => apiClient.get(`/movies/${id}`).then((phanHoi) => phanHoi.data)
 export const themPhim = (duLieu) => apiClient.post('/movies/admin', duLieu).then((phanHoi) => phanHoi.data)
 export const capNhatPhim = (id, duLieu) => apiClient.put(`/movies/admin/${id}`, duLieu).then((phanHoi) => phanHoi.data)

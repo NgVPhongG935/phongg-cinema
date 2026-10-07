@@ -1,7 +1,8 @@
 import { Clapperboard, Clock, ExternalLink, Film, Globe, Star, Ticket, Users, X } from 'lucide-react'
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
-import { getYouTubeEmbedUrl } from '../utils/chuyenLinkYoutube'
+import { getYouTubeEmbedUrl, layVideoIdYoutube } from '../utils/chuyenLinkYoutube'
 import { hienThiDoTuoiDayDu } from '../utils/locPhim'
 import { layUrlPosterPhim } from '../utils/anhPosterPhim'
 import AnhPosterPhim from './AnhPosterPhim'
@@ -21,6 +22,8 @@ export default function ModalTrailer({
   const embedUrl = getYouTubeEmbedUrl(rawTrailer, true)
 
   const title = thongTinPhim?.title || titleProp || 'Trailer phim'
+  const videoId = layVideoIdYoutube(rawTrailer)
+  const youtubeUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} official trailer`)}`
   const posterUrl = layUrlPosterPhim(thongTinPhim)
   const genres = thongTinPhim?.genres || []
   const duration = thongTinPhim?.duration
@@ -36,10 +39,11 @@ export default function ModalTrailer({
     const xuLyEsc = (suKien) => {
       if (suKien.key === 'Escape') onDong?.()
     }
+    const overflowTruoc = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', xuLyEsc)
     return () => {
-      document.body.style.overflow = ''
+      document.body.style.overflow = overflowTruoc
       window.removeEventListener('keydown', xuLyEsc)
     }
   }, [mo, onDong])
@@ -53,7 +57,7 @@ export default function ModalTrailer({
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/90 p-3 sm:p-4 backdrop-blur-xl animate-fade-in-up"
       role="dialog"
@@ -116,6 +120,7 @@ export default function ModalTrailer({
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center text-slate-400">
               <Film size={48} className="text-slate-600" />
               <p className="text-sm">Trailer phim đang được cập nhật hoặc không khả dụng.</p>
+              <a href={youtubeUrl} target="_blank" rel="noopener noreferrer" className="nut-chinh inline-flex items-center gap-2 text-sm"><ExternalLink size={16} />Tìm trailer trên YouTube</a>
               {thongTinPhim?.id && (
                 <Link
                   to={`/movies/${thongTinPhim.id}`}
@@ -130,6 +135,7 @@ export default function ModalTrailer({
         </div>
 
         {/* Khung Thông Tin Chi Tiết & CTA */}
+        {embedUrl && <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 px-5 py-3 text-xs text-slate-400"><p>Video không phát hoặc không cho nhúng?</p><a href={youtubeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-violet-300 hover:text-white"><ExternalLink size={14} />Xem trên YouTube</a></div>}
         {thongTinPhim && (
           <div className="border-t border-white/10 bg-cinema-900/50 p-5 sm:p-6">
             <div className="grid gap-6 md:grid-cols-[140px_1fr]">
@@ -220,6 +226,6 @@ export default function ModalTrailer({
           </div>
         )}
       </div>
-    </div>
+    </div>, document.body
   )
 }

@@ -40,6 +40,8 @@ public class ThongTinPhimAiDto {
     @JsonAlias({"dienVien", "actors", "cast"})
     private String actors;
 
+    private String language;
+
     @JsonProperty("posterUrl")
     @JsonAlias({"posterUrl", "anhPoster", "hinhAnh"})
     private String posterUrl;

@@ -7,10 +7,11 @@ export default function AnhPosterPhim({
   loading = 'lazy',
   placeholderClassName = 'flex h-full items-center justify-center bg-gradient-to-br from-cinema-900 to-fuchsia-950 text-slate-400 text-xs',
   placeholderText = 'PhongG Cinema',
+  onError,
 }) {
   const url = chuanHoaUrlPoster(src)
 
-  if (!url) {
+  if (!url || url === POSTER_MAC_DINH) {
     return <div className={placeholderClassName}>{placeholderText}</div>
   }
 
@@ -22,6 +23,7 @@ export default function AnhPosterPhim({
       loading={loading}
       decoding="async"
       onError={(e) => {
+        onError?.(e)
         e.currentTarget.onerror = null // BẮT BUỘC: Ngắt vòng lặp vô hạn
         e.currentTarget.src = 'https://placehold.co/300x450?text=No+Image'
       }}
