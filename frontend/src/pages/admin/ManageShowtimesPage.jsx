@@ -50,6 +50,8 @@ export default function ManageShowtimesPage() {
   const [daChonAi, datDaChonAi] = useState(new Set())
   const [nguonAi, datNguonAi] = useState('')
   const [dangXuLyAi, datDangXuLyAi] = useState(false)
+  const [dangLuuHangLoat, datDangLuuHangLoat] = useState(false)
+  const dangLuuHangLoatRef = useRef(false)
   const [tuKhoa, datTuKhoa] = useState('')
   const [locRap, datLocRap] = useState('')
   const [locPhim, datLocPhim] = useState('')
@@ -317,6 +319,7 @@ export default function ManageShowtimesPage() {
   }
 
   const taoHangLoat = async () => {
+    if (dangLuuHangLoatRef.current) return
     if (!hangLoat.maRap || !hangLoat.maPhong) { datThongBao('Chọn rạp và phòng.'); return }
     const danhSachSuat = goiY.filter((s) => daChon.has(s.maKhoa) && !s.trungLich).map((s) => ({
       thoiGianBatDau: s.thoiGianBatDau,
@@ -324,6 +327,8 @@ export default function ManageShowtimesPage() {
       giaVeTu: s.giaVeTu,
     }))
     if (!danhSachSuat.length) { datThongBao('Chọn ít nhất 1 suất.'); return }
+    dangLuuHangLoatRef.current = true
+    datDangLuuHangLoat(true)
     try {
       const ketQua = await taoHangLoatSuatChieu({
         maPhim: hangLoat.maPhim,
@@ -337,6 +342,9 @@ export default function ManageShowtimesPage() {
       taiDuLieu()
     } catch (loi) {
       datThongBao(loi.response?.data?.message || 'Không thể tạo hàng loạt.')
+    } finally {
+      dangLuuHangLoatRef.current = false
+      datDangLuuHangLoat(false)
     }
   }
 
@@ -637,7 +645,9 @@ export default function ManageShowtimesPage() {
                     </div>
                   </div>
                 ))}
-                <button type="button" onClick={taoHangLoat} className="nut-chinh mt-4 w-full">Tạo {daChon.size} suất đã chọn</button>
+                <button type="button" onClick={taoHangLoat} disabled={dangLuuHangLoat || daChon.size === 0} className="nut-chinh mt-4 w-full disabled:opacity-50">
+                  {dangLuuHangLoat ? <><Loader2 size={18} className="inline animate-spin" /> Đang lưu {daChon.size} suất…</> : `Tạo ${daChon.size} suất đã chọn`}
+                </button>
               </div>
             )}
             </AdminModalBody>

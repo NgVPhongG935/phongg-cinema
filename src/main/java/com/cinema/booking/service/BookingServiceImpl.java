@@ -37,9 +37,16 @@ public class BookingServiceImpl implements BookingService {
     private final EmailService dichVuEmail;
 
     public HoldSeatsResponse giuGheTamThoi(HoldSeatsRequest yeuCau, String maNguoiDung) {
-        LocalDateTime thoiGianHetHan = LocalDateTime.now().plusMinutes(10);
         for (int lanThu = 0; lanThu < 3; lanThu++) try {
             Showtime suatChieu = timSuatChieu(yeuCau.getMaSuatChieu());
+            LocalDateTime bayGio = LocalDateTime.now();
+            // Repeated holds and seat changes in the same session keep the original deadline.
+            LocalDateTime thoiGianHetHan = suatChieu.getTrangThaiGhe().stream()
+                    .filter(ghe -> ghe.getTrangThai() == SeatAvailability.HELD
+                            && maNguoiDung.equals(ghe.getNguoiGiuGhe())
+                            && ghe.getThoiGianHetHanGiu() != null && ghe.getThoiGianHetHanGiu().isAfter(bayGio))
+                    .map(Showtime.SeatStatus::getThoiGianHetHanGiu)
+                    .min(LocalDateTime::compareTo).orElse(bayGio.plusMinutes(5));
             for (String soGhe : yeuCau.getDanhSachGheChon()) {
                 Showtime.SeatStatus ghe = timGhe(suatChieu, soGhe);
                 boolean biNguoiKhacGiu = ghe.getTrangThai() == SeatAvailability.HELD
@@ -51,12 +58,14 @@ public class BookingServiceImpl implements BookingService {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ghế đã được chọn hoặc đang được người khác giữ: " + soGhe);
             }
             suatChieu.getTrangThaiGhe().stream().filter(ghe -> yeuCau.getDanhSachGheChon().contains(ghe.getSoGhe())).forEach(ghe -> {
-                ghe.setTrangThai(SeatAvailability.HELD);
-                ghe.setNguoiGiuGhe(maNguoiDung);
-                ghe.setThoiGianHetHanGiu(thoiGianHetHan);
+                ghe.setStatus(SeatAvailability.HELD);
+                ghe.setHeldBy(maNguoiDung);
+                ghe.setHeldExpiresAt(thoiGianHetHan);
             });
             khoSuatChieu.save(suatChieu);
-            return HoldSeatsResponse.builder().maSuatChieu(suatChieu.getId()).danhSachGheGiu(yeuCau.getDanhSachGheChon()).thoiGianHetHan(thoiGianHetHan).build();
+            return HoldSeatsResponse.builder().maSuatChieu(suatChieu.getId()).danhSachGheGiu(yeuCau.getDanhSachGheChon())
+                    .thoiGianHetHan(thoiGianHetHan)
+                    .thoiGianHetHanEpochMs(thoiGianHetHan.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()).build();
         } catch (OptimisticLockingFailureException ngoaiLe) { }
         throw new ResponseStatusException(HttpStatus.CONFLICT, "Ghế vừa được cập nhật, vui lòng thử lại");
     }
@@ -113,9 +122,9 @@ public class BookingServiceImpl implements BookingService {
             }
 
             // Cập nhật trạng thái ghế sang BOOKED gắn với người dùng
-            ghe.setTrangThai(SeatAvailability.BOOKED);
-            ghe.setNguoiGiuGhe(yeuCau.getMaNguoiDung());
-            ghe.setThoiGianHetHanGiu(null);
+            ghe.setStatus(SeatAvailability.BOOKED);
+            ghe.setHeldBy(yeuCau.getMaNguoiDung());
+            ghe.setHeldExpiresAt(null);
         }
         khoSuatChieu.save(suatChieu);
 
@@ -203,9 +212,9 @@ public class BookingServiceImpl implements BookingService {
         for (String soGhe : ve.getDanhSachGheChon()) {
             Showtime.SeatStatus ghe = timGhe(suatChieu, soGhe);
             if (ghe.getTrangThai() == SeatAvailability.BOOKED) {
-                ghe.setTrangThai(SeatAvailability.AVAILABLE);
-                ghe.setNguoiGiuGhe(null);
-                ghe.setThoiGianHetHanGiu(null);
+                ghe.setStatus(SeatAvailability.AVAILABLE);
+                ghe.setHeldBy(null);
+                ghe.setHeldExpiresAt(null);
             }
         }
         khoSuatChieu.save(suatChieu);

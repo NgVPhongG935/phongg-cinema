@@ -14,7 +14,8 @@ import { layDanhSachRapCoSuat } from '../utils/quickCinemaLocator'
 export default function HomePage() {
   const movieSectionRef = useRef(null)
   const [thamSoUrl, datThamSoUrl] = useSearchParams()
-  const [trangThai, datTrangThai] = useState('SHOWING')
+  const trangThaiUrl = thamSoUrl.get('trangThai')
+  const trangThai = trangThaiUrl === 'ALL' ? '' : trangThaiUrl === 'UPCOMING' ? 'UPCOMING' : 'SHOWING'
   const [theLoaiDuocChon, datTheLoaiDuocChon] = useState('TAT_CA')
   const [rapDuocChon, datRapDuocChon] = useState('TAT_CA')
   const [dinhDangDuocChon, datDinhDangDuocChon] = useState('TAT_CA')
@@ -77,9 +78,9 @@ export default function HomePage() {
 
   const chuyenTabTrangThai = (ttMoi) => {
     if (ttMoi === trangThai) return
-    datTrangThai(ttMoi)
     const paramsMoi = new URLSearchParams(thamSoUrl)
     paramsMoi.delete('page')
+    paramsMoi.set('trangThai', ttMoi || 'ALL')
     datThamSoUrl(paramsMoi)
     cuonToiDanhSachPhim()
   }
@@ -143,7 +144,7 @@ export default function HomePage() {
         >
           <div className="mb-7 mt-8 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="tieu-de-cyber text-2xl font-bold sm:text-3xl">Phim đang chiếu</h2>
+              <h2 className="tieu-de-cyber text-2xl font-bold sm:text-3xl">{trangThai === 'SHOWING' ? 'Phim đang chiếu' : trangThai === 'UPCOMING' ? 'Phim sắp chiếu' : 'Tất cả phim'}</h2>
               <p className="mt-1 text-sm text-slate-400">
                 {tongPhim > 0
                   ? `Trang ${trangHienTai + 1}/${Math.max(tongTrang, 1)} · ${tongPhim} phim · ${KICH_THUOC_TRANG_CHU}/trang`
@@ -151,10 +152,20 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="flex rounded-full border border-white/10 bg-white/5 p-1 shadow-inner backdrop-blur-md">
+            <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => refetch()} disabled={isFetching}
+              className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">
+              {isFetching ? 'Đang tải…' : 'Làm mới phim'}
+            </button>
+            <div className="flex flex-wrap rounded-full border border-white/10 bg-white/5 p-1 shadow-inner backdrop-blur-md">
+              <button type="button" onClick={() => chuyenTabTrangThai('')} aria-pressed={trangThai === ''}
+                className={`rounded-full px-5 py-2 text-xs font-bold transition sm:text-sm ${trangThai === '' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30' : 'text-gray-400 hover:text-white'}`}>
+                Tất cả phim
+              </button>
               <button
                 type="button"
                 onClick={() => chuyenTabTrangThai('SHOWING')}
+                aria-pressed={trangThai === 'SHOWING'}
                 className={`rounded-full px-5 py-2 text-xs font-bold transition sm:text-sm ${
                   trangThai === 'SHOWING'
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30'
@@ -166,6 +177,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => chuyenTabTrangThai('UPCOMING')}
+                aria-pressed={trangThai === 'UPCOMING'}
                 className={`rounded-full px-5 py-2 text-xs font-bold transition sm:text-sm ${
                   trangThai === 'UPCOMING'
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30'
@@ -174,6 +186,7 @@ export default function HomePage() {
               >
                 Sắp chiếu
               </button>
+            </div>
             </div>
           </div>
 

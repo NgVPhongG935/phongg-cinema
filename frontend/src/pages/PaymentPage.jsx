@@ -1,9 +1,9 @@
 import { ArrowLeft, Clock3, CreditCard, Gift, Loader2, Sparkles, Tag, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ChuyenKhoanModal from '../components/ChuyenKhoanModal'
 import { useAuth } from '../context/AuthContext'
-import { giuGheTamThoi } from '../services/showtimeService'
+import useThoiGianGiuGhe from '../hooks/useThoiGianGiuGhe'
 import { taoVeMoi, taoVaGuiYeuCauCk, huyVeTam } from '../services/ticketService'
 import { taoLienKetMomo, taoLienKetVnpay } from '../services/paymentService'
 import { apDungMaGiamGia } from '../services/voucherService'
@@ -25,9 +25,8 @@ export default function PaymentPage() {
   const { nguoiDung } = useAuth()
   const [hinhThucChon, datHinhThucChon] = useState(null)
   const [veDaTao, datVeDaTao] = useState(null)
-  const [giayConLai, datGiayConLai] = useState(viTri.state?.giayConLai || 0)
+  const { giayConLai, thoiGianHetHanMs } = useThoiGianGiuGhe(id, nguoiDung?.id, viTri.state)
   const [dangXuLy, datDangXuLy] = useState(false)
-  const [dangGiaHanGhe, datDangGiaHanGhe] = useState(false)
   const [thongBaoLoi, datThongBaoLoi] = useState('')
   const [daSaoChep, datDaSaoChep] = useState('')
   const [maGiamGiaNhap, datMaGiamGiaNhap] = useState('')
@@ -41,9 +40,6 @@ export default function PaymentPage() {
   const [donHangXem, datDonHangXem] = useState(null)
   const [thongBaoModal, datThongBaoModal] = useState('')
   const dangDatVeRef = useRef(false)
-  const daGiuGheLanDau = useRef(false)
-  const dangGiaHanRef = useRef(false)
-  const [dangKhoiTaoGhe, datDangKhoiTaoGhe] = useState(true)
 
   const gheChon = viTri.state?.gheChon || []
   const tienGhe = viTri.state?.tienGhe || 0
@@ -54,63 +50,19 @@ export default function PaymentPage() {
   const soTienGiam = voucherApDung?.soTienGiam || 0
   const tongTien = Math.max(0, tongGoc - soTienGiam)
 
-  const giaHanGiuGhe = useCallback(async () => {
-    if (!nguoiDung?.id || !gheChon.length || dangGiaHanRef.current) return false
-    dangGiaHanRef.current = true
-    datDangGiaHanGhe(true)
-    try {
-      const phanHoi = await giuGheTamThoi(id, gheChon, nguoiDung.id)
-      const giay = Math.max(0, Math.floor((new Date(phanHoi.thoiGianHetHan) - new Date()) / 1000))
-      datGiayConLai(giay)
-      return giay > 0
-    } catch (loi) {
-      const msg = loi instanceof LoiDuLieuDatVe ? loi.message : layThongBaoLoiApi(loi)
-      datThongBaoLoi(msg)
-      hienThongBaoLoi(msg)
-      return false
-    } finally {
-      dangGiaHanRef.current = false
-      datDangGiaHanGhe(false)
-    }
-  }, [nguoiDung?.id, gheChon, id])
-
   useEffect(() => {
     if (!nguoiDung) window.dispatchEvent(new Event('open-auth-modal'))
     if (!gheChon.length) dieuHuong(`/booking/${id}`, { replace: true, state: { phim } })
   }, [nguoiDung, gheChon.length, id, dieuHuong, phim])
 
   useEffect(() => {
-    let huy = false
-    const khoiTao = async () => {
-      if (!nguoiDung?.id || !gheChon.length) {
-        datDangKhoiTaoGhe(false)
-        return
-      }
-      await giaHanGiuGhe()
-      if (!huy) {
-        daGiuGheLanDau.current = true
-        datDangKhoiTaoGhe(false)
-      }
-    }
-    khoiTao()
-    return () => { huy = true }
-  }, [nguoiDung?.id, gheChon.length, giaHanGiuGhe])
-
-  useEffect(() => {
-    if (!giayConLai) return undefined
-    const boDem = setInterval(() => datGiayConLai((cu) => Math.max(0, cu - 1)), 1000)
-    return () => clearInterval(boDem)
-  }, [giayConLai])
-
-  useEffect(() => {
-    if (!daGiuGheLanDau.current || dangKhoiTaoGhe) return
-    if (giayConLai === 0 && gheChon.length && !dangGiaHanGhe && !veDaTao && !hienModalCk) {
+    if (giayConLai === 0 && gheChon.length && !veDaTao) {
       const msg = 'Hết thời gian giữ ghế. Vui lòng chọn lại.'
       datThongBaoLoi(msg)
       hienThongBaoLoi(msg)
       dieuHuong(`/booking/${id}`, { replace: true, state: { phim } })
     }
-  }, [giayConLai, gheChon.length, dieuHuong, id, phim, dangGiaHanGhe, veDaTao, hienModalCk, dangKhoiTaoGhe])
+  }, [giayConLai, gheChon.length, dieuHuong, id, phim, veDaTao])
 
   const demNguocThoiGian = `${String(Math.floor(giayConLai / 60)).padStart(2, '0')}:${String(giayConLai % 60).padStart(2, '0')}`
   const thongTinHinhThuc = useMemo(() => layHinhThucTheoMa(hinhThucChon), [hinhThucChon])
@@ -174,12 +126,11 @@ export default function PaymentPage() {
       noiDungChuyenKhoan: noiDungCk,
     })
     datHienModalCk(true)
-    await giaHanGiuGhe()
   }
 
   const xacNhanDatVe = async () => {
-    if (!nguoiDung || !hinhThucChon || dangDatVeRef.current || dangKhoiTaoGhe) return
-    if (!giayConLai) {
+    if (!nguoiDung || !hinhThucChon || dangDatVeRef.current) return
+    if (!giayConLai || Date.now() >= thoiGianHetHanMs) {
       const msg = 'Ghế chưa được giữ hoặc đã hết hạn. Vui lòng quay lại chọn ghế.'
       datThongBaoLoi(msg)
       hienThongBaoLoi(msg)
@@ -231,6 +182,10 @@ export default function PaymentPage() {
 
   const xuLyDaChuyenKhoan = async () => {
     if (dangXuLy) return
+    if (!giayConLai || Date.now() >= thoiGianHetHanMs) {
+      datThongBaoModal('Hết thời gian giữ ghế. Vui lòng chọn lại.')
+      return
+    }
     datDangXuLy(true)
     datThongBaoLoi('')
     datThongBaoModal('')
@@ -292,7 +247,7 @@ export default function PaymentPage() {
 
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link to={`/booking/${id}/combo`} state={{ phim, gheChon, tienGhe, giayConLai, soLuongCombo: viTri.state?.soLuongCombo }} className="mb-3 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
+          <Link to={`/booking/${id}/combo`} state={{ phim, gheChon, tienGhe, giayConLai, thoiGianHetHanMs, soLuongCombo: viTri.state?.soLuongCombo }} className="mb-3 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
             <ArrowLeft size={16} /> Quay lại bắp nước
           </Link>
           <p className="text-sm font-semibold uppercase tracking-wider text-fuchsia-300">Bước 3 · Thanh toán</p>
@@ -301,7 +256,7 @@ export default function PaymentPage() {
         </div>
         {giayConLai > 0 && (
           <div className="flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2.5 text-amber-200">
-            {dangGiaHanGhe ? <Loader2 size={18} className="animate-spin" /> : <Clock3 size={18} />}
+            <Clock3 size={18} />
             <span className="text-sm">Giữ ghế: <b className="font-mono text-base">{demNguocThoiGian}</b></span>
           </div>
         )}
@@ -427,7 +382,7 @@ export default function PaymentPage() {
           <button
             type="button"
             onClick={xacNhanDatVe}
-            disabled={!hinhThucChon || dangXuLy || dangGiaHanGhe || dangKhoiTaoGhe || !giayConLai || veDaTao || hienModalCk}
+            disabled={!hinhThucChon || dangXuLy || !giayConLai || veDaTao || hienModalCk}
             className="nut-chinh mt-6 flex w-full items-center justify-center gap-2 disabled:opacity-60"
           >
             {dangXuLy ? <><Loader2 size={18} className="animate-spin" />Đang tạo vé...</> : <><CreditCard size={18} />Xác nhận &amp; nhận thông tin CK</>}

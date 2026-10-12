@@ -8,6 +8,7 @@ import { giuGheTamThoi, laySoDoGhe } from '../services/showtimeService'
 import { dinhDangTien } from '../utils/formatters'
 import { chuanHoaGheDatVe, layCapGheDoi } from '../utils/soDoGhe'
 import { lamTronNghin, tinhGiaGhe } from '../utils/tinhGiaVe'
+import useThoiGianGiuGhe, { docPhienGiuGhe } from '../hooks/useThoiGianGiuGhe'
 
 export default function SeatBookingPage() {
   const { id } = useParams()
@@ -16,11 +17,16 @@ export default function SeatBookingPage() {
   const viTri = useLocation()
   const [danhSachGhe, datDanhSachGhe] = useState([])
   const [giaVeTu, datGiaVeTu] = useState(0)
-  const [gheChon, datGheChon] = useState([])
-  const [giayConLai, datGiayConLai] = useState(0)
+  const [gheChon, datGheChon] = useState(() => viTri.state?.gheChon || docPhienGiuGhe(id, nguoiDung?.id)?.gheChon || [])
+  const { giayConLai, thoiGianHetHanMs, luuThoiGianGiuGhe } = useThoiGianGiuGhe(id, nguoiDung?.id, viTri.state)
   const [dangXuLy, datDangXuLy] = useState(false)
+  const [gheDaGiu, datGheDaGiu] = useState(() => docPhienGiuGhe(id, nguoiDung?.id)?.gheChon || (viTri.state?.thoiGianHetHanMs ? viTri.state?.gheChon : []) || [])
+  const daGiuGheChon = giayConLai > 0 && gheChon.length === gheDaGiu.length && gheChon.every(so => gheDaGiu.includes(so))
 
   useEffect(() => {
+    const phien = docPhienGiuGhe(id, nguoiDung?.id)
+    datGheChon(viTri.state?.gheChon || phien?.gheChon || [])
+    datGheDaGiu(phien?.gheChon || (viTri.state?.thoiGianHetHanMs ? viTri.state?.gheChon : []) || [])
     laySoDoGhe(id).then(({ giaVeTu: gia, danhSachGhe: danhSach }) => {
       datGiaVeTu(gia || 0)
       datDanhSachGhe(danhSach.map((ghe) => chuanHoaGheDatVe(ghe, gia)))
@@ -30,10 +36,12 @@ export default function SeatBookingPage() {
     })
   }, [id])
   useEffect(() => {
-    if (!giayConLai) return undefined
-    const boDem = setInterval(() => datGiayConLai((cu) => Math.max(0, cu - 1)), 1000)
-    return () => clearInterval(boDem)
-  }, [giayConLai])
+    if (!thoiGianHetHanMs || giayConLai > 0) return
+    laySoDoGhe(id).then(({ giaVeTu: gia, danhSachGhe: danhSach }) => {
+      datGiaVeTu(gia || 0)
+      datDanhSachGhe(danhSach.map(ghe => chuanHoaGheDatVe(ghe, gia)))
+    }).catch(() => {})
+  }, [id, thoiGianHetHanMs, giayConLai])
 
   const demNguocThoiGian = `${String(Math.floor(giayConLai / 60)).padStart(2, '0')}:${String(giayConLai % 60).padStart(2, '0')}`
 
@@ -60,7 +68,8 @@ export default function SeatBookingPage() {
     datDangXuLy(true)
     try {
       const phanHoi = await giuGheTamThoi(id, gheChon, nguoiDung.id)
-      datGiayConLai(Math.max(0, Math.floor((new Date(phanHoi.thoiGianHetHan) - new Date()) / 1000)))
+      luuThoiGianGiuGhe(phanHoi, gheChon)
+      datGheDaGiu([...gheChon])
       datDanhSachGhe((cu) => cu.map((ghe) => (gheChon.includes(ghe.soGhe) ? { ...ghe, trangThai: 'HELD', nguoiGiuGhe: nguoiDung.id } : ghe)))
     } catch (loi) {
       window.alert(loi.response?.data?.message || 'Không thể giữ ghế đã chọn')
@@ -74,13 +83,14 @@ export default function SeatBookingPage() {
   }
 
   const tiepTucCombo = () => {
-    if (!giayConLai || !gheChon.length) return
+    if (!daGiuGheChon || !gheChon.length || Date.now() >= thoiGianHetHanMs) return
     dieuHuong(`/booking/${id}/combo`, {
       state: {
         phim: viTri.state?.phim,
         gheChon,
         tienGhe: tongTien,
         giayConLai,
+        thoiGianHetHanMs,
       },
     })
   }
@@ -129,8 +139,8 @@ export default function SeatBookingPage() {
             <span>Tổng cộng</span>
             <span className="text-cinema-500">{dinhDangTien(tongTien)}</span>
           </div>
-          <button onClick={giayConLai > 0 ? tiepTucCombo : giuGhe} disabled={!gheChon.length || dangXuLy} className="nut-chinh mt-6 flex w-full items-center justify-center gap-2">
-            {giayConLai > 0 ? <>Chọn bắp nước →</> : <><Ticket size={18} />Giữ ghế 5 phút</>}
+          <button onClick={daGiuGheChon ? tiepTucCombo : giuGhe} disabled={!gheChon.length || dangXuLy} className="nut-chinh mt-6 flex w-full items-center justify-center gap-2">
+            {daGiuGheChon ? <>Chọn bắp nước →</> : <><Ticket size={18} />{giayConLai > 0 ? 'Giữ ghế đã chọn' : 'Giữ ghế 5 phút'}</>}
           </button>
         </aside>
       </div>

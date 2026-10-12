@@ -41,6 +41,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -87,6 +88,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     public List<ShowtimeResponseDto> layLichSuSuatChieuAdmin() {
         Query truyVan = new Query().limit(GIOI_HAN_LICH_SU_ADMIN);
+        truyVan.fields().exclude("seats", "trangThaiGhe");
         List<org.bson.Document> docs = mongoTemplate.find(truyVan, org.bson.Document.class, "showtimes");
         List<Showtime> danhSach = docs.stream().map(this::tuDocumentSuat).filter(s -> s.getId() != null).toList();
         // #region agent log
@@ -151,6 +153,14 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     public ShowtimeSeatMapDto laySoDoGheSuatChieu(String id) {
         Showtime suat = timSuatChieu(id);
+        LocalDateTime bayGio = LocalDateTime.now();
+        // Show expired holds as available without writing during a read request.
+        suat.getTrangThaiGhe().stream().filter(ghe -> ghe.getStatus() == com.cinema.booking.document.SeatAvailability.HELD
+                && ghe.getHeldExpiresAt() != null && !ghe.getHeldExpiresAt().isAfter(bayGio)).forEach(ghe -> {
+            ghe.setStatus(com.cinema.booking.document.SeatAvailability.AVAILABLE);
+            ghe.setHeldBy(null);
+            ghe.setHeldExpiresAt(null);
+        });
         return ShowtimeSeatMapDto.builder()
                 .giaVeTu(suat.getGiaVeTu())
                 .danhSachGhe(suat.getTrangThaiGhe())
@@ -275,13 +285,35 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         }
         Cinema rap = khoRap.findById(yeuCau.getMaRap()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay rap"));
         Cinema.Room phong = timPhong(rap, yeuCau.getMaPhong());
-        List<Showtime> suatDaTao = new ArrayList<>();
-        for (var slot : yeuCau.getDanhSachSuat()) {
-            kiemTraTrungLich(yeuCau.getMaRap(), yeuCau.getMaPhong(), slot.getThoiGianBatDau(), slot.getThoiGianKetThuc(), null);
-            if (coTrungLich(suatDaTao, slot.getThoiGianBatDau(), slot.getThoiGianKetThuc(), null)) {
+        var slots = new ArrayList<>(yeuCau.getDanhSachSuat());
+        for (var slot : slots) {
+            if (slot == null || slot.getThoiGianBatDau() == null || slot.getThoiGianKetThuc() == null
+                    || !slot.getThoiGianBatDau().isBefore(slot.getThoiGianKetThuc())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thoi gian suat chieu khong hop le");
+            }
+        }
+        slots.sort(Comparator.comparing(com.cinema.booking.dto.ShowtimeSlotDto::getThoiGianBatDau));
+        for (int i = 1; i < slots.size(); i++) {
+            if (slots.get(i).getThoiGianBatDau().isBefore(slots.get(i - 1).getThoiGianKetThuc())) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Danh sach suat chon bi trung gio voi nhau");
             }
-            Showtime suatMoi = khoSuatChieu.save(Showtime.builder()
+        }
+        LocalDateTime tu = slots.get(0).getThoiGianBatDau();
+        LocalDateTime den = slots.get(slots.size() - 1).getThoiGianKetThuc();
+        // Read only time fields once, including shows crossing midnight and legacy documents.
+        Query truyVan = new Query(new Criteria().andOperator(
+                new Criteria().orOperator(Criteria.where("cinemaId").is(yeuCau.getMaRap()), Criteria.where("maRap").is(yeuCau.getMaRap())),
+                new Criteria().orOperator(Criteria.where("roomId").is(yeuCau.getMaPhong()), Criteria.where("maPhong").is(yeuCau.getMaPhong())),
+                new Criteria().orOperator(Criteria.where("startTime").lt(den), Criteria.where("thoiGianBatDau").lt(den)),
+                new Criteria().orOperator(Criteria.where("endTime").gt(tu), Criteria.where("thoiGianKetThuc").gt(tu))));
+        truyVan.fields().include("startTime", "endTime", "thoiGianBatDau", "thoiGianKetThuc");
+        List<Showtime> suatDaCo = mongoTemplate.find(truyVan, Showtime.class);
+        List<Showtime> suatDaTao = new ArrayList<>();
+        for (var slot : slots) {
+            if (coTrungLich(suatDaCo, slot.getThoiGianBatDau(), slot.getThoiGianKetThuc(), null)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phòng đã có suất chiếu trong khung giờ này");
+            }
+            Showtime suatMoi = Showtime.builder()
                     .movieId(yeuCau.getMaPhim())
                     .cinemaId(yeuCau.getMaRap())
                     .roomId(yeuCau.getMaPhong())
@@ -290,10 +322,12 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                     .price(slot.getGiaVeTu())
                     .format(yeuCau.getDinhDang())
                     .seats(taoTrangThaiGheTuPhong(rap, phong, slot.getGiaVeTu()))
-                    .build());
+                    .build();
             suatDaTao.add(suatMoi);
         }
-        return yeuCau.getDanhSachSuat().size();
+        // Validate the entire batch before writing; insert assigns IDs and initial versions.
+        mongoTemplate.insert(suatDaTao, Showtime.class);
+        return suatDaTao.size();
     }
 
     public ShowtimeAutoSeedResultDto taoSuatChieuTuDong(ShowtimeAutoSeedRequestDto yeuCau) {
@@ -542,9 +576,12 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         List<Showtime> daLoc = locSuatTrung(danhSachSuat).stream()
                 .filter(suat -> suat.getThoiGianBatDau() != null)
                 .toList();
-        Map<String, String> tenRapTheoMa = khoRap.findAll().stream()
+        if (daLoc.isEmpty()) return List.of();
+        Set<String> maRap = daLoc.stream().map(Showtime::getMaRap).filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+        Set<String> maPhim = daLoc.stream().map(Showtime::getMaPhim).filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+        Map<String, String> tenRapTheoMa = khoRap.findAllById(maRap).stream()
                 .collect(Collectors.toMap(Cinema::getId, Cinema::getTenRap, (a, b) -> a));
-        Map<String, String> tenPhimTheoMa = khoPhim.findAll().stream()
+        Map<String, String> tenPhimTheoMa = khoPhim.findAllById(maPhim).stream()
                 .collect(Collectors.toMap(Movie::getId, Movie::getTitle, (a, b) -> a));
         LocalDateTime bayGio = LocalDateTime.now();
         return daLoc.stream()

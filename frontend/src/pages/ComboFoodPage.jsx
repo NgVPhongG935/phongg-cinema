@@ -1,14 +1,13 @@
-import { ArrowLeft, CheckCircle2, Clock3, CreditCard, Loader2, Minus, Plus, Popcorn, ShoppingBag, Users } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, CheckCircle2, Clock3, CreditCard, Minus, Plus, Popcorn, ShoppingBag, Users } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { giuGheTamThoi } from '../services/showtimeService'
+import useThoiGianGiuGhe from '../hooks/useThoiGianGiuGhe'
 import { layDanhSachCombo } from '../services/comboService'
 import {
   chuyenComboTuApi, DANH_SACH_COMBO_MAC_DINH, demTongSoCombo, taoSoLuongComboRong, tinhTienCombo,
 } from '../utils/comboFood'
 import { dinhDangTien } from '../utils/formatters'
-import { layThongBaoLoiApi } from '../utils/layThongBaoLoiApi'
 
 const BIEU_TUONG_COMBO = {
   popcorn: Popcorn,
@@ -23,27 +22,12 @@ export default function ComboFoodPage() {
   const { nguoiDung } = useAuth()
   const [soLuongCombo, datSoLuongCombo] = useState(() => taoSoLuongComboRong())
   const [danhSachCombo, datDanhSachCombo] = useState(DANH_SACH_COMBO_MAC_DINH)
-  const [giayConLai, datGiayConLai] = useState(viTri.state?.giayConLai || 0)
-  const [dangGiaHanGhe, datDangGiaHanGhe] = useState(false)
+  const { giayConLai, thoiGianHetHanMs } = useThoiGianGiuGhe(id, nguoiDung?.id, viTri.state)
   const [thongBaoLoi, datThongBaoLoi] = useState('')
 
   const gheChon = viTri.state?.gheChon || []
   const tienGhe = viTri.state?.tienGhe || 0
   const phim = viTri.state?.phim
-
-  const giaHanGiuGhe = useCallback(async () => {
-    if (!nguoiDung?.id || !gheChon.length) return
-    datDangGiaHanGhe(true)
-    try {
-      const phanHoi = await giuGheTamThoi(id, gheChon, nguoiDung.id)
-      const giay = Math.max(0, Math.floor((new Date(phanHoi.thoiGianHetHan) - new Date()) / 1000))
-      datGiayConLai(giay)
-    } catch (loi) {
-      datThongBaoLoi(layThongBaoLoiApi(loi))
-    } finally {
-      datDangGiaHanGhe(false)
-    }
-  }, [nguoiDung?.id, gheChon, id])
 
   useEffect(() => {
     layDanhSachCombo()
@@ -63,21 +47,11 @@ export default function ComboFoodPage() {
   }, [nguoiDung, gheChon.length, id, dieuHuong, phim])
 
   useEffect(() => {
-    if (nguoiDung?.id && gheChon.length) giaHanGiuGhe()
-  }, [nguoiDung?.id, gheChon.length, giaHanGiuGhe])
-
-  useEffect(() => {
-    if (!giayConLai) return undefined
-    const boDem = setInterval(() => datGiayConLai((cu) => Math.max(0, cu - 1)), 1000)
-    return () => clearInterval(boDem)
-  }, [giayConLai])
-
-  useEffect(() => {
-    if (giayConLai === 0 && gheChon.length && !dangGiaHanGhe) {
+    if (giayConLai === 0 && gheChon.length) {
       datThongBaoLoi('Hết thời gian giữ ghế. Vui lòng chọn lại.')
       dieuHuong(`/booking/${id}`, { replace: true, state: { phim } })
     }
-  }, [giayConLai, gheChon.length, dieuHuong, id, phim, dangGiaHanGhe])
+  }, [giayConLai, gheChon.length, dieuHuong, id, phim])
 
   const tienBapNuoc = useMemo(() => tinhTienCombo(soLuongCombo, danhSachCombo), [soLuongCombo, danhSachCombo])
   const tongTien = tienGhe + tienBapNuoc
@@ -100,6 +74,7 @@ export default function ComboFoodPage() {
         tienBapNuoc: boQuaCombo ? 0 : tienBapNuoc,
         soLuongCombo: boQuaCombo ? taoSoLuongComboRong() : soLuongCombo,
         giayConLai,
+        thoiGianHetHanMs,
       },
     })
   }
@@ -108,7 +83,7 @@ export default function ComboFoodPage() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-10">
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link to={`/booking/${id}`} state={{ phim, gheChon, giayConLai }} className="mb-3 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
+          <Link to={`/booking/${id}`} state={{ phim, gheChon, giayConLai, thoiGianHetHanMs }} className="mb-3 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
             <ArrowLeft size={16} /> Quay lại chọn ghế
           </Link>
           <p className="text-sm font-semibold uppercase tracking-wider text-amber-300">Bước 2 · Bắp nước</p>
@@ -117,7 +92,7 @@ export default function ComboFoodPage() {
         </div>
         {giayConLai > 0 && (
           <div className="flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2.5 text-amber-200">
-            {dangGiaHanGhe ? <Loader2 size={18} className="animate-spin" /> : <Clock3 size={18} />}
+            <Clock3 size={18} />
             <span className="text-sm">Giữ ghế: <b className="font-mono text-base">{demNguocThoiGian}</b></span>
           </div>
         )}
@@ -204,10 +179,10 @@ export default function ComboFoodPage() {
               </div>
             </div>
           </div>
-          <button type="button" onClick={() => chuyenThanhToan(false)} disabled={dangGiaHanGhe || !giayConLai} className="nut-chinh mt-6 flex w-full items-center justify-center gap-2 disabled:opacity-60">
+          <button type="button" onClick={() => chuyenThanhToan(false)} disabled={!giayConLai} className="nut-chinh mt-6 flex w-full items-center justify-center gap-2 disabled:opacity-60">
             <CreditCard size={18} />Tiếp tục thanh toán
           </button>
-          <button type="button" onClick={() => chuyenThanhToan(true)} disabled={dangGiaHanGhe || !giayConLai} className="mt-3 w-full rounded-xl border border-white/10 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-60">
+          <button type="button" onClick={() => chuyenThanhToan(true)} disabled={!giayConLai} className="mt-3 w-full rounded-xl border border-white/10 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-60">
             Bỏ qua combo, thanh toán ngay
           </button>
         </aside>

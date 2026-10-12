@@ -11,4 +11,5 @@ public class HoldSeatsResponse {
     private String maSuatChieu;
     private List<String> danhSachGheGiu;
     private LocalDateTime thoiGianHetHan;
+    private Long thoiGianHetHanEpochMs;
 }
