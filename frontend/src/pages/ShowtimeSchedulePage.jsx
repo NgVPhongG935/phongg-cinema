@@ -1,5 +1,6 @@
 import { Calendar, ChevronLeft, ChevronRight, Clock, ExternalLink, Film, MapPin, Sparkles, Ticket } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ngayDiaPhuong } from '../utils/ngayDiaPhuong'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useViTriRap } from '../context/ViTriRapContext'
 import { layChiTietPhim } from '../services/movieService'
@@ -18,7 +19,7 @@ function taoDanhSachNgay(soNgay = 14) {
   for (let i = 0; i < soNgay; i++) {
     const d = new Date(homNay)
     d.setDate(homNay.getDate() + i)
-    const iso = d.toISOString().slice(0, 10)
+    const iso = ngayDiaPhuong(d)
     const thu = i === 0 ? 'Hôm nay' : i === 1 ? 'Ngày mai' : d.toLocaleDateString('vi-VN', { weekday: 'short' })
     const ngay = d.getDate()
     const thang = `Th${d.getMonth() + 1}`
@@ -58,7 +59,7 @@ export default function ShowtimeSchedulePage() {
   const [khuVuc, datKhuVuc] = useState('')
   const [danhSachRap, datDanhSachRap] = useState([])
   const [maRap, datMaRap] = useState('')
-  const [ngayChieu, datNgayChieu] = useState(new Date().toISOString().slice(0, 10))
+  const [ngayChieu, datNgayChieu] = useState(() => ngayDiaPhuong())
   const [danhSachSuat, datDanhSachSuat] = useState([])
   const [dangTai, datDangTai] = useState(false)
   const [suatDangChon, datSuatDangChon] = useState(null)

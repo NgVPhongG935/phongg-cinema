@@ -24,9 +24,10 @@ import static org.mockito.Mockito.*;
 class ShowtimeBatchCreateTest {
     private final ShowtimeRepository showtimes = mock(ShowtimeRepository.class);
     private final CinemaRepository cinemas = mock(CinemaRepository.class);
+    private final MovieRepository movies = mock(MovieRepository.class);
     private final MongoTemplate mongo = mock(MongoTemplate.class);
     private final ShowtimeServiceImpl service = new ShowtimeServiceImpl(showtimes, cinemas,
-            mock(MovieRepository.class), mock(TicketRepository.class), mongo, mock(AiService.class), new ObjectMapper());
+            movies, mock(TicketRepository.class), mongo, mock(AiService.class), new ObjectMapper());
 
     private ShowtimeBatchCreateDto request(List<ShowtimeSlotDto> slots) {
         var room = Cinema.Room.builder().maPhong("P01").danhSachGhe(List.of(
@@ -91,5 +92,32 @@ class ShowtimeBatchCreateTest {
         assertThat(expired.getHeldBy()).isNull();
         assertThat(active.getStatus()).isEqualTo(SeatAvailability.HELD);
         verify(showtimes, never()).save(any());
+    }
+    @Test
+    void filterIndexIncludesNewlySavedEnglishFieldsAndLegacyFields() {
+        var current = Showtime.builder().movieId("movie").cinemaId("cinema").format("3D").build();
+        var legacy = new Showtime(); legacy.setMaPhim("legacy"); legacy.setMaRap("old-cinema"); legacy.setDinhDang("2D");
+        when(mongo.find(any(Query.class), eq(Showtime.class))).thenReturn(List.of(current, legacy));
+        var index = service.layChiSoLocPhim();
+        assertThat(index.getRapTheoPhim().get("movie")).containsExactly("cinema");
+        assertThat(index.getRapTheoPhim().get("legacy")).containsExactly("old-cinema");
+        assertThat(index.getDinhDangTheoPhim().get("movie")).containsExactly("3D");
+        ArgumentCaptor<Query> query = ArgumentCaptor.forClass(Query.class);
+        verify(mongo).find(query.capture(), eq(Showtime.class));
+        assertThat(query.getValue().getQueryObject().toString()).contains("startTime", "thoiGianBatDau");
+        assertThat(query.getValue().getFieldsObject().keySet()).contains("movieId", "cinemaId", "format", "maPhim", "maRap", "dinhDang");
+    }
+    @Test
+    void futureScheduleIsPublicEvenForAnUpcomingMovie() {
+        var start = java.time.LocalDate.now().plusDays(1).atTime(20, 0);
+        var show = Showtime.builder().id("show").movieId("movie").cinemaId("cinema").roomId("P01")
+                .startTime(start).endTime(start.plusHours(2)).format("2D").build();
+        when(showtimes.findByMaRapAndThoiGianBatDauBetween(eq("cinema"), any(), any())).thenReturn(List.of(show));
+        when(movies.findAllById(any())).thenReturn(List.of(com.cinema.booking.document.Movie.builder().id("movie")
+                .title("Upcoming film").status(com.cinema.booking.document.MovieStatus.UPCOMING).build()));
+        when(cinemas.findAllById(any())).thenReturn(List.of(Cinema.builder().id("cinema").tenRap("Cinema").build()));
+        var result = service.layLichChieuHomNayTheoRap("cinema", start.toLocalDate().toString());
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getShowtimes()).extracting(s -> s.getId()).containsExactly("show");
     }
 }

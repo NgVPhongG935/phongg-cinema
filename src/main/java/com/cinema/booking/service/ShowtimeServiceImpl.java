@@ -466,8 +466,9 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     public ShowtimeFilterIndexDto layChiSoLocPhim() {
         LocalDateTime bayGio = LocalDateTime.now();
-        Query truyVan = new Query(Criteria.where("thoiGianBatDau").gte(bayGio));
-        truyVan.fields().include("maPhim", "maRap", "dinhDang");
+        Query truyVan = new Query(new Criteria().orOperator(
+                Criteria.where("startTime").gte(bayGio), Criteria.where("thoiGianBatDau").gte(bayGio)));
+        truyVan.fields().include("movieId", "cinemaId", "format", "maPhim", "maRap", "dinhDang");
         List<Showtime> danhSachSuat = mongoTemplate.find(truyVan, Showtime.class);
 
         Map<String, java.util.Set<String>> rapTheoPhim = new java.util.HashMap<>();

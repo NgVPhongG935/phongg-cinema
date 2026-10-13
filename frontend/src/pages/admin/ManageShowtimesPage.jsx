@@ -6,25 +6,27 @@ import { capNhatSuatChieu, goiYXepLichAi, goiYSuatChieu, layDanhSachRap, layLich
 import { dinhDangGiaNgan, dinhDangKhoangGio, dinhDangNgay, dinhDangTien } from '../../utils/formatters'
 import { lamTronNghin, tinhGiaGhe } from '../../utils/tinhGiaVe'
 import { layThongBaoLoiApi } from '../../utils/layThongBaoLoiApi'
+import { ngayDiaPhuong } from '../../utils/ngayDiaPhuong'
 
 const DINH_DANG_MAC_DINH = ['2D Lồng Tiếng', '2D Phụ Đề', '3D']
 const DU_LIEU_RONG = { maPhim: '', maRap: '', maPhong: '', thoiGianBatDau: '', thoiGianKetThuc: '', giaVeTu: '69000', dinhDang: '2D Lồng Tiếng' }
 const HANG_LOAT_RONG = {
   maPhim: '', maRap: '', maPhong: '', dinhDang: '2D Lồng Tiếng',
-  tuNgay: new Date().toISOString().slice(0, 10),
-  denNgay: new Date().toISOString().slice(0, 10),
+  tuNgay: '', denNgay: '',
   tuGio: '09:00', denGio: '23:45',
   thoiGianNghiPhut: '15', buocLamTronPhut: '15',
   giaVeTuNgay: '69000', giaVeTuToi: '75000', gioApGiaToi: '18',
 }
 const AI_RONG = {
   maRap: '',
-  ngayChieu: new Date().toISOString().slice(0, 10),
+  ngayChieu: '',
   dinhDang: '2D Lồng Tiếng',
   danhSachMaPhim: [],
 }
 
 const GIOI_HAN_PHIM_AI = 8
+const taoHangLoatRong = () => ({ ...HANG_LOAT_RONG, tuNgay: ngayDiaPhuong(), denNgay: ngayDiaPhuong() })
+const taoAiRong = () => ({ ...AI_RONG, ngayChieu: ngayDiaPhuong() })
 
 const chuyenLocalDatetime = (thoiGian) => {
   if (!thoiGian) return ''
@@ -38,14 +40,14 @@ export default function ManageShowtimesPage() {
   const [danhSachRap, datDanhSachRap] = useState([])
   const [lichSu, datLichSu] = useState([])
   const [duLieu, datDuLieu] = useState(DU_LIEU_RONG)
-  const [hangLoat, datHangLoat] = useState(HANG_LOAT_RONG)
+  const [hangLoat, datHangLoat] = useState(taoHangLoatRong)
   const [goiY, datGoiY] = useState([])
   const [daChon, datDaChon] = useState(new Set())
   const [suatSua, datSuatSua] = useState(null)
   const [dangMo, datDangMo] = useState(false)
   const [dangMoHangLoat, datDangMoHangLoat] = useState(false)
   const [dangMoAi, datDangMoAi] = useState(false)
-  const [aiDuLieu, datAiDuLieu] = useState(AI_RONG)
+  const [aiDuLieu, datAiDuLieu] = useState(taoAiRong)
   const [goiYAi, datGoiYAi] = useState([])
   const [daChonAi, datDaChonAi] = useState(new Set())
   const [nguonAi, datNguonAi] = useState('')
@@ -151,7 +153,7 @@ export default function ManageShowtimesPage() {
     datThongBao('')
     datGoiY([])
     datDaChon(new Set())
-    datHangLoat(HANG_LOAT_RONG)
+    datHangLoat(taoHangLoatRong())
     datDangMoHangLoat(true)
   }
 
@@ -164,7 +166,7 @@ export default function ManageShowtimesPage() {
     const phimHot = danhSachPhim.filter((p) => p.trangThai === 'SHOWING').map((p) => p.id)
     const macDinh = phimHot.length ? phimHot.slice(0, GIOI_HAN_PHIM_AI) : danhSachPhim.slice(0, 3).map((p) => p.id)
     datAiDuLieu({
-      ...AI_RONG,
+      ...taoAiRong(),
       maRap: danhSachRap[0]?.id || '',
       danhSachMaPhim: macDinh,
     })
@@ -729,7 +731,10 @@ export default function ManageShowtimesPage() {
               <tr key={suat.id} className="border-t border-white/10">
                 <td className="py-3 pr-4 font-medium text-white">{suat.movieTitle || suat.tenPhim || suat.title}</td>
                 <td className="py-3 pr-4 text-slate-300">{suat.tenRap || suat.cinemaName}<br /><span className="text-xs text-slate-500">Phòng {suat.maPhong || suat.roomId}</span></td>
-                <td className="py-3 pr-4 text-slate-300">{dinhDangNgay(suat.thoiGianBatDau || suat.startTime)}</td>
+                <td className="py-3 pr-4 text-slate-300">
+                  {dinhDangNgay(suat.thoiGianBatDau || suat.startTime)}
+                  {(suat.expired || suat.hetHan) && <span className="mt-1 block text-xs text-amber-300">Đã qua giờ chiếu · không hiện ở trang đặt vé</span>}
+                </td>
                 <td className="py-3 pr-4 text-slate-300">{dinhDangGiaNgan(suat.giaVeTu ?? suat.price)} · {suat.dinhDang || suat.format}</td>
                 <td className="py-3">
                   <div className="flex gap-2">

@@ -1,11 +1,13 @@
-import { CalendarClock, ChevronRight, Clock, Film, Loader2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { CalendarClock, ChevronRight, Clock, Film, Loader2, RefreshCw } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { layLichChieuHomNayTheoRap } from '../services/showtimeService'
 import { dinhDangGio } from '../utils/formatters'
 import { hienThiDoTuoi } from '../utils/locPhim'
 import { getUniqueShowtimes, gioChieuDuyNhat, gomSuatPhim, khoaSuatChieu, nhomTheoDinhDangVaGio, tenPhongSuat } from '../utils/locSuatChieu'
 import AnhPosterPhim from './AnhPosterPhim'
+import { ngayDiaPhuong } from '../utils/ngayDiaPhuong'
 
 function taoDanhSach7Ngay() {
   const danhSach = []
@@ -13,7 +15,7 @@ function taoDanhSach7Ngay() {
   for (let i = 0; i < 7; i++) {
     const d = new Date(homNay)
     d.setDate(homNay.getDate() + i)
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const iso = ngayDiaPhuong(d)
     const thu = i === 0 ? 'Hôm nay' : i === 1 ? 'Ngày mai' : d.toLocaleDateString('vi-VN', { weekday: 'short' })
     danhSach.push({ iso, thu, ngay: d.getDate(), thang: `Th${d.getMonth() + 1}`, isToday: i === 0 })
   }
@@ -34,30 +36,20 @@ function nhanNgay(iso) {
 
 export default function CinemaShowtimeList({ maRap, tenRap }) {
   const dieuHuong = useNavigate()
-  const [danhSachPhim, datDanhSachPhim] = useState([])
-  const [dangTai, datDangTai] = useState(false)
-  const [ngayChieu, datNgayChieu] = useState(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  })
+  const [ngayChieu, datNgayChieu] = useState(() => ngayDiaPhuong())
 
   const danhSach7Ngay = useMemo(() => taoDanhSach7Ngay(), [])
 
-  useEffect(() => {
-    if (!maRap) {
-      datDanhSachPhim([])
-      return
-    }
-    datDangTai(true)
-    layLichChieuHomNayTheoRap(maRap, ngayChieu)
-      .then((ds) => {
-        const movies = Array.isArray(ds) ? ds : []
-        const afterHours = movies.map(gomSuatPhim)
-        datDanhSachPhim(afterHours)
-      })
-      .catch(() => datDanhSachPhim([]))
-      .finally(() => datDangTai(false))
-  }, [maRap, ngayChieu])
+  const { data: danhSachPhim = [], isFetching: dangTai, isError, refetch } = useQuery({
+    queryKey: ['showtimes', 'cinema-day', maRap, ngayChieu],
+    queryFn: async () => {
+      const ds = await layLichChieuHomNayTheoRap(maRap, ngayChieu)
+      return (Array.isArray(ds) ? ds : []).map(gomSuatPhim)
+    },
+    enabled: Boolean(maRap),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  })
 
   if (!maRap) return null
 
@@ -80,8 +72,14 @@ export default function CinemaShowtimeList({ maRap, tenRap }) {
           <h3 className="mt-1 text-lg font-bold text-white sm:text-xl">{tenRap || 'Rạp đã chọn'}</h3>
           <p className="mt-0.5 text-xs text-slate-400">{nhanNgay(ngayChieu)}</p>
         </div>
+        <div className="flex items-center gap-2">
+        <button type="button" onClick={() => refetch()} disabled={dangTai} aria-label="Làm mới lịch chiếu"
+          className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 hover:text-white disabled:opacity-50">
+          <RefreshCw size={16} className={dangTai ? 'animate-spin' : ''} />
+        </button>
         <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
           {danhSachPhim.length} phim · {tongGio} khung giờ
+        </div>
         </div>
       </div>
 
@@ -114,7 +112,12 @@ export default function CinemaShowtimeList({ maRap, tenRap }) {
         </div>
       )}
 
-      {!dangTai && danhSachPhim.length === 0 && (
+      {!dangTai && isError && (
+        <div role="alert" className="rounded-2xl border border-amber-400/30 py-12 text-center text-amber-200">
+          <p>Chưa tải được lịch chiếu. Bạn bấm làm mới để thử lại.</p>
+        </div>
+      )}
+      {!dangTai && !isError && danhSachPhim.length === 0 && (
         <div className="rounded-2xl border border-white/10 py-12 text-center text-slate-400">
           <Film size={36} className="mx-auto mb-2 text-slate-600" />
           <p className="font-semibold text-slate-300">Không có suất chiếu cho ngày đã chọn</p>
