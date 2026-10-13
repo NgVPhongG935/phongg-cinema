@@ -7,6 +7,7 @@ import com.cinema.booking.dto.ShowtimeSeatMapDto;
 import com.cinema.booking.dto.ShowtimeSeatMapDto;
 import com.cinema.booking.util.ShowtimeSeatMapper;
 import com.cinema.booking.util.TinhGiaVeUtil;
+import com.cinema.booking.util.ShowtimeTime;
 import com.cinema.booking.document.Showtime;
 import com.cinema.booking.dto.PhimSuatHomNayDto;
 import com.cinema.booking.dto.ShowtimeAutoSeedRequestDto;
@@ -69,8 +70,8 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         LocalDateTime batDauNgay = ngay.atStartOfDay();
         LocalDateTime ketThucNgay = ngay.plusDays(1).atStartOfDay();
         List<Showtime> danhSachSuat = (maRap == null || maRap.isBlank())
-                ? khoSuatChieu.findByMaPhimAndThoiGianBatDauBetween(maPhim, batDauNgay, ketThucNgay)
-                : khoSuatChieu.findByMaPhimAndMaRapAndThoiGianBatDauBetween(maPhim, maRap, batDauNgay, ketThucNgay);
+                ? khoSuatChieu.findByMaPhimAndThoiGianBatDauBetween(maPhim, ShowtimeTime.stored(batDauNgay), ShowtimeTime.stored(ketThucNgay))
+                : khoSuatChieu.findByMaPhimAndMaRapAndThoiGianBatDauBetween(maPhim, maRap, ShowtimeTime.stored(batDauNgay), ShowtimeTime.stored(ketThucNgay));
         // #region agent log
         try {
             java.util.Set<String> ids = new java.util.HashSet<>();
@@ -131,7 +132,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
             if (v == null) continue;
             if (v instanceof LocalDateTime ldt) return ldt;
             if (v instanceof java.util.Date d) {
-                return LocalDateTime.ofInstant(d.toInstant(), java.time.ZoneId.systemDefault());
+                return ShowtimeTime.local(d);
             }
             try {
                 return LocalDateTime.parse(String.valueOf(v).replace(" ", "T").substring(0, Math.min(19, String.valueOf(v).replace(" ", "T").length())));
@@ -304,8 +305,8 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         Query truyVan = new Query(new Criteria().andOperator(
                 new Criteria().orOperator(Criteria.where("cinemaId").is(yeuCau.getMaRap()), Criteria.where("maRap").is(yeuCau.getMaRap())),
                 new Criteria().orOperator(Criteria.where("roomId").is(yeuCau.getMaPhong()), Criteria.where("maPhong").is(yeuCau.getMaPhong())),
-                new Criteria().orOperator(Criteria.where("startTime").lt(den), Criteria.where("thoiGianBatDau").lt(den)),
-                new Criteria().orOperator(Criteria.where("endTime").gt(tu), Criteria.where("thoiGianKetThuc").gt(tu))));
+                new Criteria().orOperator(Criteria.where("startTime").lt(ShowtimeTime.stored(den)), Criteria.where("thoiGianBatDau").lt(ShowtimeTime.stored(den))),
+                new Criteria().orOperator(Criteria.where("endTime").gt(ShowtimeTime.stored(tu)), Criteria.where("thoiGianKetThuc").gt(ShowtimeTime.stored(tu)))));
         truyVan.fields().include("startTime", "endTime", "thoiGianBatDau", "thoiGianKetThuc");
         List<Showtime> suatDaCo = mongoTemplate.find(truyVan, Showtime.class);
         List<Showtime> suatDaTao = new ArrayList<>();
@@ -331,7 +332,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     }
 
     public ShowtimeAutoSeedResultDto taoSuatChieuTuDong(ShowtimeAutoSeedRequestDto yeuCau) {
-        LocalDate tuNgay = yeuCau.getTuNgay() != null ? yeuCau.getTuNgay() : LocalDate.now();
+        LocalDate tuNgay = yeuCau.getTuNgay() != null ? yeuCau.getTuNgay() : ShowtimeTime.now().toLocalDate();
         LocalDate denNgay = yeuCau.getDenNgay() != null ? yeuCau.getDenNgay() : tuNgay.plusDays(6);
         if (tuNgay.isAfter(denNgay)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tu ngay phai truoc den ngay");
@@ -465,9 +466,9 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     }
 
     public ShowtimeFilterIndexDto layChiSoLocPhim() {
-        LocalDateTime bayGio = LocalDateTime.now();
+        LocalDateTime bayGio = ShowtimeTime.now();
         Query truyVan = new Query(new Criteria().orOperator(
-                Criteria.where("startTime").gte(bayGio), Criteria.where("thoiGianBatDau").gte(bayGio)));
+                Criteria.where("startTime").gte(ShowtimeTime.stored(bayGio)), Criteria.where("thoiGianBatDau").gte(ShowtimeTime.stored(bayGio))));
         truyVan.fields().include("movieId", "cinemaId", "format", "maPhim", "maRap", "dinhDang");
         List<Showtime> danhSachSuat = mongoTemplate.find(truyVan, Showtime.class);
 
@@ -497,11 +498,11 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         LocalDate ngay = LocalDate.parse(ngayChieu);
         LocalDateTime batDauNgay = ngay.atStartOfDay();
         LocalDateTime ketThucNgay = ngay.plusDays(1).atStartOfDay();
-        LocalDateTime bayGio = LocalDateTime.now();
+        LocalDateTime bayGio = ShowtimeTime.now();
 
-        List<Showtime> danhSachSuat = khoSuatChieu.findByMaRapAndThoiGianBatDauBetween(maRap, batDauNgay, ketThucNgay)
+        List<Showtime> danhSachSuat = khoSuatChieu.findByMaRapAndThoiGianBatDauBetween(maRap, ShowtimeTime.stored(batDauNgay), ShowtimeTime.stored(ketThucNgay))
                 .stream()
-                .filter(suat -> ngay.isAfter(LocalDate.now()) || !suat.getThoiGianBatDau().isBefore(bayGio))
+                .filter(suat -> suat.getThoiGianBatDau() != null && !suat.getThoiGianBatDau().isBefore(bayGio))
                 .toList();
         // #region agent log
         try {
@@ -584,7 +585,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 .collect(Collectors.toMap(Cinema::getId, Cinema::getTenRap, (a, b) -> a));
         Map<String, String> tenPhimTheoMa = khoPhim.findAllById(maPhim).stream()
                 .collect(Collectors.toMap(Movie::getId, Movie::getTitle, (a, b) -> a));
-        LocalDateTime bayGio = LocalDateTime.now();
+        LocalDateTime bayGio = ShowtimeTime.now();
         return daLoc.stream()
                 .sorted(giamDanTheoThoiGian
                         ? (a, b) -> b.getThoiGianBatDau().compareTo(a.getThoiGianBatDau())
@@ -644,8 +645,8 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 new Criteria().orOperator(Criteria.where("cinemaId").is(maRap), Criteria.where("maRap").is(maRap)),
                 new Criteria().orOperator(Criteria.where("roomId").is(maPhong), Criteria.where("maPhong").is(maPhong)),
                 new Criteria().orOperator(
-                        Criteria.where("startTime").gte(batDau).lt(ketThuc),
-                        Criteria.where("thoiGianBatDau").gte(batDau).lt(ketThuc)
+                        Criteria.where("startTime").gte(ShowtimeTime.stored(batDau)).lt(ShowtimeTime.stored(ketThuc)),
+                        Criteria.where("thoiGianBatDau").gte(ShowtimeTime.stored(batDau)).lt(ShowtimeTime.stored(ketThuc))
                 )
         );
         Query truyVan = new Query(phongCriteria);
@@ -662,8 +663,8 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 new Criteria().orOperator(Criteria.where("cinemaId").is(maRap), Criteria.where("maRap").is(maRap)),
                 new Criteria().orOperator(Criteria.where("roomId").is(maPhong), Criteria.where("maPhong").is(maPhong)),
                 new Criteria().orOperator(
-                        Criteria.where("startTime").gte(tu).lt(den),
-                        Criteria.where("thoiGianBatDau").gte(tu).lt(den)
+                        Criteria.where("startTime").gte(ShowtimeTime.stored(tu)).lt(ShowtimeTime.stored(den)),
+                        Criteria.where("thoiGianBatDau").gte(ShowtimeTime.stored(tu)).lt(ShowtimeTime.stored(den))
                 )
         );
         Query truyVan = new Query(phongCriteria);

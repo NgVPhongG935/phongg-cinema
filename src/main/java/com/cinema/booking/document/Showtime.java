@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.convert.ValueConverter;
+import com.cinema.booking.util.ShowtimeDateConverter;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -38,9 +40,11 @@ public class Showtime {
 
     @Indexed
     @JsonAlias({"thoiGianBatDau"})
+    @ValueConverter(ShowtimeDateConverter.class)
     private LocalDateTime startTime;
 
     @JsonAlias({"thoiGianKetThuc"})
+    @ValueConverter(ShowtimeDateConverter.class)
     private LocalDateTime endTime;
 
     @JsonAlias({"giaVeTu"})

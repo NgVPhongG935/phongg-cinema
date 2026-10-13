@@ -17,6 +17,7 @@ import com.cinema.booking.repository.MovieRepository;
 import com.cinema.booking.repository.RegionRepository;
 import com.cinema.booking.repository.ShowtimeRepository;
 import com.cinema.booking.repository.TicketRepository;
+import com.cinema.booking.util.ShowtimeTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -65,7 +66,9 @@ public class DashboardServiceImpl implements DashboardService {
                 .tongRap(khoRap.count())
                 .tongKhuVuc(khoKhuVuc.count())
                 .tongSuatChieu(khoSuatChieu.count())
-                .suatHomNay(khoSuatChieu.countDashboardByThoiGianBatDauBetween(batDauHomNay, ketThucHomNay))
+                .suatHomNay(khoSuatChieu.countDashboardByThoiGianBatDauBetween(
+                        ShowtimeTime.stored(ShowtimeTime.now().toLocalDate().atStartOfDay()),
+                        ShowtimeTime.stored(ShowtimeTime.now().toLocalDate().plusDays(1).atStartOfDay())))
                 .tongVe(khoVe.countDashboardByTrangThaiIn(TRANG_THAI_VE_HOP_LE))
                 .veHomNay(veHomNay.size())
                 .veWebHomNay(veWebHomNay.size())
@@ -130,7 +133,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public AdminDashboardActivityDto layHoatDong() {
-        List<Showtime> suatSapToiRaw = khoSuatChieu.findDashboardUpcoming(LocalDateTime.now(), PageRequest.of(0, 6));
+        List<Showtime> suatSapToiRaw = khoSuatChieu.findDashboardUpcoming(ShowtimeTime.stored(ShowtimeTime.now()), PageRequest.of(0, 6));
         List<Ticket> veGanDayRaw = khoVe.findDashboardRecent(PageRequest.of(0, 6));
 
         Set<String> maSuatCanDoc = veGanDayRaw.stream()

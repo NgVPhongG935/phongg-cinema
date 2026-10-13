@@ -2,6 +2,8 @@
 
 ## Backend: Web Service dùng Docker
 
+Giờ bắt đầu/kết thúc của suất chiếu dùng phép chuyển đổi cố định để localhost và Render đọc cùng một giờ đã lưu. Riêng việc xác định ngày hiện tại và suất đã qua giờ dùng `Asia/Ho_Chi_Minh`. Bản sửa chỉ áp dụng cho lịch chiếu, không đổi múi giờ toàn JVM hay cách lưu thời hạn giữ ghế. Cần triển khai lại backend để cập nhật phần này; build frontend không cập nhật API Java.
+
 - Root Directory: để trống (gốc repository).
 - Dockerfile Path: `./Dockerfile`.
 - Health Check Path: `/api/v1/health`.
