@@ -71,3 +71,37 @@ test('successful save closes modal and refreshes history', async ({ page }) => {
   await expect(page.locator('tbody')).toContainText('Test film')
 })
 
+test('upcoming shows come first and pagination and status filters work together', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-10-14T03:00:00Z') })
+  await setup(page)
+  const upcoming = Array.from({ length: 12 }, (_, i) => ({ id: `future-${i}`, movieId: 'movie', movieTitle: `Upcoming ${i + 1}`, startTime: `2026-10-${String(15 + i).padStart(2, '0')}T09:00:00`, expired: false }))
+  const past = [
+    { id: 'old', movieTitle: 'Older show', startTime: '2026-10-10T09:00:00', expired: true },
+    { id: 'recent', movieTitle: 'Recent past show', startTime: '2026-10-13T09:00:00', expired: true },
+  ]
+  await page.route('**/showtimes/admin/history', route => route.fulfill({ json: [...past, ...upcoming.reverse()] }))
+  await page.reload()
+  const rows = page.locator('tbody tr')
+  await expect(rows).toHaveCount(10)
+  await expect(rows.first()).toContainText('Upcoming 1')
+  await expect(rows.last()).toContainText('Upcoming 10')
+  await expect(page.getByRole('button', { name: 'Trang trước' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Trang sau' }).click()
+  await expect(rows).toHaveCount(4)
+  await expect(rows.first()).toContainText('Upcoming 11')
+  await expect(rows.nth(2)).toContainText('Recent past show')
+  await expect(rows.last()).toContainText('Older show')
+  await expect(page.getByRole('button', { name: 'Trang sau' })).toBeDisabled()
+  await page.getByRole('combobox', { name: 'Trạng thái suất chiếu' }).selectOption('daQua')
+  await expect(rows).toHaveCount(2)
+  await expect(rows.first()).toContainText('Recent past show')
+  await expect(page.getByRole('combobox', { name: 'Chọn trang suất chiếu' })).toHaveValue('1')
+  await page.getByRole('combobox', { name: 'Trạng thái suất chiếu' }).selectOption('sapChieu')
+  await expect(rows).toHaveCount(10)
+  await expect(rows.first()).toContainText('Upcoming 1')
+  await page.getByRole('button', { name: 'Trang sau' }).click()
+  await page.getByPlaceholder('Tìm phim, rạp, phòng...').fill('Upcoming 1')
+  await expect(page.getByRole('combobox', { name: 'Chọn trang suất chiếu' })).toHaveValue('1')
+  await expect(rows).toHaveCount(4)
+})
+

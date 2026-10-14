@@ -76,9 +76,21 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     }
 
     public List<ShowtimeResponseDto> layLichSuSuatChieuAdmin() {
-        Query truyVan = new Query().limit(GIOI_HAN_LICH_SU_ADMIN);
-        truyVan.fields().exclude("seats", "trangThaiGhe");
-        List<org.bson.Document> docs = mongoTemplate.find(truyVan, org.bson.Document.class, "showtimes");
+        // Sort before limiting: old inserted documents must not crowd out upcoming shows.
+        var ngayChieu = new org.bson.Document("$convert", new org.bson.Document("input",
+                new org.bson.Document("$ifNull", List.of("$startTime", "$thoiGianBatDau")))
+                .append("to", "date").append("onError", null).append("onNull", null));
+        var daQuaGio = new org.bson.Document("$lt", List.of("$ngaySapXep", ShowtimeTime.stored(ShowtimeTime.now())));
+        var aggregation = org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation(
+                context -> new org.bson.Document("$project", new org.bson.Document("seats", 0).append("trangThaiGhe", 0)),
+                context -> new org.bson.Document("$addFields", new org.bson.Document("ngaySapXep", ngayChieu)),
+                context -> new org.bson.Document("$addFields", new org.bson.Document("daQuaGioSapXep", daQuaGio)
+                        .append("thuTuSapXep", new org.bson.Document("$cond", List.of(daQuaGio,
+                                new org.bson.Document("$multiply", List.of(new org.bson.Document("$toLong", "$ngaySapXep"), -1)),
+                                new org.bson.Document("$toLong", "$ngaySapXep"))))),
+                org.springframework.data.mongodb.core.aggregation.Aggregation.sort(Sort.Direction.ASC, "daQuaGioSapXep", "thuTuSapXep", "_id"),
+                org.springframework.data.mongodb.core.aggregation.Aggregation.limit(GIOI_HAN_LICH_SU_ADMIN));
+        List<org.bson.Document> docs = mongoTemplate.aggregate(aggregation, "showtimes", org.bson.Document.class).getMappedResults();
         List<Showtime> danhSach = docs.stream().map(this::tuDocumentSuat).filter(s -> s.getId() != null).toList();
         return chuyenDoiDanhSach(danhSach, true);
     }

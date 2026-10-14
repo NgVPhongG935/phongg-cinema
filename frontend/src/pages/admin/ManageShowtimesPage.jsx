@@ -25,6 +25,12 @@ const AI_RONG = {
 }
 
 const GIOI_HAN_PHIM_AI = 8
+const SO_SUAT_MOI_TRANG = 10
+const thoiGianSuat = (suat) => new Date(suat.thoiGianBatDau || suat.startTime).getTime()
+const daQuaGio = (suat, bayGio) => {
+  const thoiGian = thoiGianSuat(suat)
+  return Number.isFinite(thoiGian) ? thoiGian < bayGio : Boolean(suat.expired || suat.hetHan)
+}
 const taoHangLoatRong = () => ({ ...HANG_LOAT_RONG, tuNgay: ngayDiaPhuong(), denNgay: ngayDiaPhuong() })
 const taoAiRong = () => ({ ...AI_RONG, ngayChieu: ngayDiaPhuong() })
 
@@ -63,6 +69,9 @@ export default function ManageShowtimesPage() {
   const [tuKhoa, datTuKhoa] = useState('')
   const [locRap, datLocRap] = useState('')
   const [locPhim, datLocPhim] = useState('')
+  const [locTrangThai, datLocTrangThai] = useState('')
+  const [trang, datTrang] = useState(1)
+  const [bayGio, datBayGio] = useState(Date.now)
   const [thongBaoAi, datThongBaoAi] = useState('')
   const [thongBao, datThongBao] = useState('')
   const vungKetQuaAiRef = useRef(null)
@@ -77,6 +86,11 @@ export default function ManageShowtimesPage() {
   }
 
   useEffect(() => { taiDuLieu() }, [])
+  useEffect(() => {
+    const timer = setInterval(() => datBayGio(Date.now()), 30000)
+    return () => clearInterval(timer)
+  }, [])
+  useEffect(() => { datTrang(1) }, [tuKhoa, locRap, locPhim, locTrangThai])
 
   useEffect(() => {
     aiVersion.current += 1
@@ -132,6 +146,8 @@ export default function ManageShowtimesPage() {
       const maPhim = suat.maPhim || suat.movieId
       if (locRap && maRap !== locRap) return false
       if (locPhim && maPhim !== locPhim) return false
+      if (locTrangThai === 'sapChieu' && daQuaGio(suat, bayGio)) return false
+      if (locTrangThai === 'daQua' && !daQuaGio(suat, bayGio)) return false
       if (!chuoi) return true
       const vanBan = [
         suat.movieTitle || suat.tenPhim || suat.title,
@@ -141,8 +157,20 @@ export default function ManageShowtimesPage() {
         dinhDangNgay(suat.thoiGianBatDau || suat.startTime),
       ].join(' ').toLowerCase()
       return vanBan.includes(chuoi)
+    }).sort((a, b) => {
+      const quaA = daQuaGio(a, bayGio)
+      const quaB = daQuaGio(b, bayGio)
+      if (quaA !== quaB) return quaA ? 1 : -1
+      const chenhLech = thoiGianSuat(a) - thoiGianSuat(b)
+      return Number.isFinite(chenhLech) ? (quaA ? -chenhLech : chenhLech) : 0
     })
-  }, [lichSu, tuKhoa, locRap, locPhim])
+  }, [lichSu, tuKhoa, locRap, locPhim, locTrangThai, bayGio])
+
+  const soTrang = Math.max(1, Math.ceil(lichSuLoc.length / SO_SUAT_MOI_TRANG))
+  const trangHienTai = Math.min(trang, soTrang)
+  const viTriDau = (trangHienTai - 1) * SO_SUAT_MOI_TRANG
+  const lichSuTrang = lichSuLoc.slice(viTriDau, viTriDau + SO_SUAT_MOI_TRANG)
+  useEffect(() => { datTrang((cu) => Math.min(cu, soTrang)) }, [soTrang])
 
   const xuLyThayDoi = (suKien) => {
     const { name, value } = suKien.target
@@ -754,9 +782,9 @@ export default function ManageShowtimesPage() {
       )}
 
       <div className="admin-table-panel mt-8 overflow-x-auto p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-white">Lịch sử suất chiếu ({lichSuLoc.length}{lichSuLoc.length !== lichSu.length ? ` / ${lichSu.length}` : ''})</h2>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative min-w-[220px]">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -775,8 +803,14 @@ export default function ManageShowtimesPage() {
               <option value="">Tất cả rạp</option>
               {danhSachRap.map((rap) => <option key={rap.id} value={rap.id}>{rap.tenRap}</option>)}
             </select>
+            <select aria-label="Trạng thái suất chiếu" value={locTrangThai} onChange={(e) => datLocTrangThai(e.target.value)} className="o-nhap min-w-[160px]">
+              <option value="">Tất cả trạng thái</option>
+              <option value="sapChieu">Chưa tới giờ chiếu</option>
+              <option value="daQua">Đã qua giờ chiếu</option>
+            </select>
           </div>
         </div>
+        <p className="mt-3 text-xs text-slate-400">Suất chưa tới giờ xếp trước, ưu tiên giờ gần nhất. Suất đã qua giờ xếp sau.</p>
         <table className="mt-4 w-full min-w-[720px] text-left text-sm">
           <thead className="text-slate-400">
             <tr>
@@ -788,13 +822,15 @@ export default function ManageShowtimesPage() {
             </tr>
           </thead>
           <tbody>
-            {lichSuLoc.map((suat) => (
+            {lichSuTrang.map((suat) => (
               <tr key={suat.id} className="border-t border-white/10">
                 <td className="py-3 pr-4 font-medium text-white">{suat.movieTitle || suat.tenPhim || suat.title}</td>
                 <td className="py-3 pr-4 text-slate-300">{suat.tenRap || suat.cinemaName}<br /><span className="text-xs text-slate-500">Phòng {suat.maPhong || suat.roomId}</span></td>
                 <td className="py-3 pr-4 text-slate-300">
                   {dinhDangNgay(suat.thoiGianBatDau || suat.startTime)}
-                  {(suat.expired || suat.hetHan) && <span className="mt-1 block text-xs text-amber-300">Đã qua giờ chiếu · không hiện ở trang đặt vé</span>}
+                  {daQuaGio(suat, bayGio)
+                    ? <span className="mt-1 block text-xs text-amber-300">Đã qua giờ chiếu · không hiện ở trang đặt vé</span>
+                    : <span className="mt-1 block text-xs text-emerald-300">Chưa tới giờ chiếu</span>}
                 </td>
                 <td className="py-3 pr-4 text-slate-300">{dinhDangGiaNgan(suat.giaVeTu ?? suat.price)} · {suat.dinhDang || suat.format}</td>
                 <td className="py-3">
@@ -807,6 +843,21 @@ export default function ManageShowtimesPage() {
             ))}
           </tbody>
         </table>
+        {lichSuLoc.length > 0 && (
+          <nav aria-label="Phân trang suất chiếu" className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 text-sm">
+            <p className="text-slate-400">Hiển thị {viTriDau + 1}–{Math.min(viTriDau + SO_SUAT_MOI_TRANG, lichSuLoc.length)} / {lichSuLoc.length} suất</p>
+            <div className="flex items-center gap-3">
+              <button type="button" disabled={trangHienTai === 1} onClick={() => datTrang(trangHienTai - 1)} className="rounded-lg border border-white/10 px-3 py-2 hover:bg-white/5 disabled:opacity-40">Trang trước</button>
+              <label className="flex items-center gap-2 text-slate-300">Trang
+                <select aria-label="Chọn trang suất chiếu" value={trangHienTai} onChange={(e) => datTrang(Number(e.target.value))} className="rounded-lg border border-white/10 bg-slate-900 px-2 py-2">
+                  {Array.from({ length: soTrang }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                </select>
+                / {soTrang}
+              </label>
+              <button type="button" disabled={trangHienTai === soTrang} onClick={() => datTrang(trangHienTai + 1)} className="rounded-lg border border-white/10 px-3 py-2 hover:bg-white/5 disabled:opacity-40">Trang sau</button>
+            </div>
+          </nav>
+        )}
         {lichSu.length === 0 && <p className="mt-4 text-center text-slate-400">Chưa có suất chiếu nào.</p>}
         {lichSu.length > 0 && lichSuLoc.length === 0 && <p className="mt-4 text-center text-slate-400">Không có suất chiếu phù hợp.</p>}
       </div>
