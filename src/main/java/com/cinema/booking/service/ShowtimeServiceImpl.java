@@ -72,18 +72,6 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         List<Showtime> danhSachSuat = (maRap == null || maRap.isBlank())
                 ? khoSuatChieu.findByMaPhimAndThoiGianBatDauBetween(maPhim, ShowtimeTime.stored(batDauNgay), ShowtimeTime.stored(ketThucNgay))
                 : khoSuatChieu.findByMaPhimAndMaRapAndThoiGianBatDauBetween(maPhim, maRap, ShowtimeTime.stored(batDauNgay), ShowtimeTime.stored(ketThucNgay));
-        // #region agent log
-        try {
-            java.util.Set<String> ids = new java.util.HashSet<>();
-            java.util.Set<String> slotKeys = new java.util.HashSet<>();
-            for (Showtime s : danhSachSuat) {
-                ids.add(s.getId());
-                slotKeys.add(String.valueOf(s.getStartTime()) + "|" + s.getRoomId());
-            }
-            String line = "{\"sessionId\":\"12750d\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"location\":\"ShowtimeServiceImpl.layLichChieuTheoPhimVaNgay\",\"message\":\"showtimes query\",\"data\":{\"maPhim\":\"" + maPhim + "\",\"maRap\":\"" + String.valueOf(maRap) + "\",\"raw\":" + danhSachSuat.size() + ",\"uniqueIds\":" + ids.size() + ",\"uniqueSlot\":" + slotKeys.size() + "},\"timestamp\":" + System.currentTimeMillis() + "}\n";
-            java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {}
-        // #endregion
         return locGioDuyNhat(chuyenDoiDanhSach(danhSachSuat, false));
     }
 
@@ -92,13 +80,6 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         truyVan.fields().exclude("seats", "trangThaiGhe");
         List<org.bson.Document> docs = mongoTemplate.find(truyVan, org.bson.Document.class, "showtimes");
         List<Showtime> danhSach = docs.stream().map(this::tuDocumentSuat).filter(s -> s.getId() != null).toList();
-        // #region agent log
-        try {
-            long nullStart = danhSach.stream().filter(s -> s.getThoiGianBatDau() == null).count();
-            String line = "{\"sessionId\":\"12750d\",\"runId\":\"post-fix\",\"hypothesisId\":\"H\",\"location\":\"ShowtimeServiceImpl.layLichSuSuatChieuAdmin\",\"message\":\"admin history loaded\",\"data\":{\"raw\":" + danhSach.size() + ",\"nullStart\":" + nullStart + "},\"timestamp\":" + System.currentTimeMillis() + "}\n";
-            java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {}
-        // #endregion
         return chuyenDoiDanhSach(danhSach, true);
     }
 
@@ -169,34 +150,10 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     }
 
     public Showtime taoSuatChieuMoi(ShowtimeDto dto) {
-        // #region agent log
-        try {
-            String line = "{\"sessionId\":\"12750d\",\"runId\":\"create-showtime\",\"hypothesisId\":\"B\",\"location\":\"ShowtimeServiceImpl.taoSuatChieuMoi\",\"message\":\"dto received\",\"data\":{\"maPhim\":\"" + String.valueOf(dto.getMaPhim()) + "\",\"maRap\":\"" + String.valueOf(dto.getMaRap()) + "\",\"maPhong\":\"" + String.valueOf(dto.getMaPhong()) + "\",\"start\":\"" + String.valueOf(dto.getThoiGianBatDau()) + "\",\"end\":\"" + String.valueOf(dto.getThoiGianKetThuc()) + "\",\"gia\":\"" + String.valueOf(dto.getGiaVeTu()) + "\",\"format\":\"" + String.valueOf(dto.getDinhDang()) + "\"},\"timestamp\":" + System.currentTimeMillis() + "}\n";
-            java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {}
-        // #endregion
-        if (dto.getMaRap() == null || dto.getMaRap().isBlank()
-                || dto.getMaPhim() == null || dto.getMaPhim().isBlank()
-                || dto.getMaPhong() == null || dto.getMaPhong().isBlank()
-                || dto.getThoiGianBatDau() == null || dto.getThoiGianKetThuc() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Thieu thong tin bat buoc (phim/rap/phong/thoi gian). Kiem tra dinh dang startTime/endTime.");
-        }
-        Cinema rap = khoRap.findById(dto.getMaRap()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay rap"));
+        kiemTraDuLieuSuat(dto);
+        Cinema rap = khoRap.findById(dto.getMaRap()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy rạp"));
         Cinema.Room phong = timPhong(rap, dto.getMaPhong());
-        try {
-            kiemTraTrungLich(dto.getMaRap(), dto.getMaPhong(), dto.getThoiGianBatDau(), dto.getThoiGianKetThuc(), null);
-        } catch (ResponseStatusException e) {
-            throw e;
-        } catch (Exception e) {
-            // #region agent log
-            try {
-                String line = "{\"sessionId\":\"12750d\",\"runId\":\"create-showtime\",\"hypothesisId\":\"C\",\"location\":\"ShowtimeServiceImpl.taoSuatChieuMoi:conflict\",\"message\":\"conflict check crash\",\"data\":{\"err\":\"" + e.getClass().getSimpleName() + "\",\"msg\":\"" + String.valueOf(e.getMessage()).replace("\"","'") + "\"},\"timestamp\":" + System.currentTimeMillis() + "}\n";
-                java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-            } catch (Exception ignored) {}
-            // #endregion
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loi kiem tra trung lich: " + e.getMessage());
-        }
+        kiemTraTrungLich(dto.getMaRap(), dto.getMaPhong(), dto.getThoiGianBatDau(), dto.getThoiGianKetThuc(), null);
         Showtime daLuu = khoSuatChieu.save(Showtime.builder()
                 .movieId(dto.getMaPhim())
                 .cinemaId(dto.getMaRap())
@@ -207,18 +164,17 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 .format(dto.getDinhDang())
                 .seats(taoTrangThaiGheTuPhong(rap, phong, dto.getGiaVeTu()))
                 .build());
-        // #region agent log
-        try {
-            String line = "{\"sessionId\":\"12750d\",\"runId\":\"create-showtime\",\"hypothesisId\":\"E\",\"location\":\"ShowtimeServiceImpl.taoSuatChieuMoi:saved\",\"message\":\"showtime saved\",\"data\":{\"id\":\"" + daLuu.getId() + "\",\"cinemaId\":\"" + daLuu.getCinemaId() + "\",\"roomId\":\"" + daLuu.getRoomId() + "\"},\"timestamp\":" + System.currentTimeMillis() + "}\n";
-            java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {}
-        // #endregion
         return daLuu;
     }
 
     public Showtime capNhatSuatChieu(String id, ShowtimeDto dto) {
+        kiemTraDuLieuSuat(dto);
         Showtime suat = timSuatChieu(id);
+        if (khoVe.existsByMaSuatChieu(id)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Suất chiếu đã có vé đặt, không thể thay đổi lịch hoặc giá vé");
+        }
         Cinema rap = khoRap.findById(dto.getMaRap()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay rap"));
+        timPhong(rap, dto.getMaPhong());
         boolean doiPhong = !suat.getMaRap().equals(dto.getMaRap()) || !suat.getMaPhong().equals(dto.getMaPhong());
         kiemTraTrungLich(dto.getMaRap(), dto.getMaPhong(), dto.getThoiGianBatDau(), dto.getThoiGianKetThuc(), id);
         suat.setMovieId(dto.getMaPhim());
@@ -251,6 +207,14 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         int gioToi = yeuCau.getGioApGiaToi() != null ? yeuCau.getGioApGiaToi() : 18;
         BigDecimal giaNgay = yeuCau.getGiaVeTuNgay() != null ? yeuCau.getGiaVeTuNgay() : BigDecimal.valueOf(69000);
         BigDecimal giaToi = yeuCau.getGiaVeTuToi() != null ? yeuCau.getGiaVeTuToi() : BigDecimal.valueOf(75000);
+        timPhong(yeuCau.getMaRap(), yeuCau.getMaPhong());
+        if (thoiLuong <= 0 || nghi < 0 || buoc < 1 || buoc > 60 || gioToi < 0 || gioToi > 23
+                || giaNgay.signum() < 0 || giaToi.signum() < 0
+                || !yeuCau.getTuGio().isBefore(yeuCau.getDenGio())
+                || ChronoUnit.DAYS.between(yeuCau.getTuNgay(), yeuCau.getDenNgay()) > 90
+                || yeuCau.getTuNgay().isBefore(ShowtimeTime.now().toLocalDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kiểm tra ngày, khung giờ, giá vé, thời gian nghỉ và bước làm tròn (1–60 phút, tối đa 90 ngày)");
+        }
         List<Showtime> suatDaCo = laySuatTheoPhongTrongKhoang(yeuCau.getMaRap(), yeuCau.getMaPhong(), yeuCau.getTuNgay(), yeuCau.getDenNgay());
 
         List<ShowtimeSlotPreviewDto> ketQua = new ArrayList<>();
@@ -262,7 +226,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 LocalDateTime ketThuc = batDau.plusMinutes(thoiLuong);
                 if (ketThuc.isAfter(gioiHan)) break;
                 BigDecimal gia = batDau.getHour() >= gioToi ? giaToi : giaNgay;
-                boolean trungLich = coTrungLich(suatDaCo, batDau, ketThuc, null);
+                boolean trungLich = batDau.isBefore(ShowtimeTime.now()) || coTrungLich(suatDaCo, batDau, ketThuc, null);
                 ketQua.add(ShowtimeSlotPreviewDto.builder()
                         .maKhoa(batDau.toString())
                         .ngay(ngay)
@@ -284,6 +248,14 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         if (yeuCau.getDanhSachSuat() == null || yeuCau.getDanhSachSuat().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chua chon suat nao");
         }
+        ShowtimeDto thongTin = new ShowtimeDto();
+        thongTin.setMaPhim(yeuCau.getMaPhim()); thongTin.setMaRap(yeuCau.getMaRap());
+        thongTin.setMaPhong(yeuCau.getMaPhong()); thongTin.setDinhDang(yeuCau.getDinhDang());
+        var dau = yeuCau.getDanhSachSuat().get(0);
+        if (dau == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Suất chiếu không hợp lệ");
+        thongTin.setThoiGianBatDau(dau.getThoiGianBatDau()); thongTin.setThoiGianKetThuc(dau.getThoiGianKetThuc());
+        thongTin.setGiaVeTu(dau.getGiaVeTu());
+        kiemTraDuLieuSuat(thongTin);
         Cinema rap = khoRap.findById(yeuCau.getMaRap()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay rap"));
         Cinema.Room phong = timPhong(rap, yeuCau.getMaPhong());
         var slots = new ArrayList<>(yeuCau.getDanhSachSuat());
@@ -293,6 +265,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thoi gian suat chieu khong hop le");
             }
         }
+        for (var slot : slots) kiemTraThoiGianGia(slot.getThoiGianBatDau(), slot.getThoiGianKetThuc(), slot.getGiaVeTu());
         slots.sort(Comparator.comparing(com.cinema.booking.dto.ShowtimeSlotDto::getThoiGianBatDau));
         for (int i = 1; i < slots.size(); i++) {
             if (slots.get(i).getThoiGianBatDau().isBefore(slots.get(i - 1).getThoiGianKetThuc())) {
@@ -504,21 +477,6 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 .stream()
                 .filter(suat -> suat.getThoiGianBatDau() != null && !suat.getThoiGianBatDau().isBefore(bayGio))
                 .toList();
-        // #region agent log
-        try {
-            java.util.Set<String> ids = new java.util.HashSet<>();
-            java.util.Set<String> slotKeys = new java.util.HashSet<>();
-            java.util.Map<String, Integer> gioDem = new java.util.HashMap<>();
-            for (Showtime s : danhSachSuat) {
-                ids.add(s.getId());
-                String gio = s.getStartTime() != null ? s.getStartTime().toString() : "null";
-                slotKeys.add(gio + "|" + s.getRoomId());
-                gioDem.merge(gio, 1, Integer::sum);
-            }
-            String line = "{\"sessionId\":\"12750d\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"location\":\"ShowtimeServiceImpl.layLichChieuHomNayTheoRap\",\"message\":\"cinema-day raw\",\"data\":{\"maRap\":\"" + maRap + "\",\"ngay\":\"" + ngayChieu + "\",\"raw\":" + danhSachSuat.size() + ",\"uniqueIds\":" + ids.size() + ",\"uniqueSlot\":" + slotKeys.size() + ",\"gioCounts\":" + gioDem.size() + "},\"timestamp\":" + System.currentTimeMillis() + "}\n";
-            java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {}
-        // #endregion
 
         if (danhSachSuat.isEmpty()) return List.of();
 
@@ -606,6 +564,33 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 .toList();
     }
 
+    private void kiemTraDuLieuSuat(ShowtimeDto dto) {
+        if (dto == null || dto.getMaPhim() == null || dto.getMaPhim().isBlank()
+                || dto.getMaRap() == null || dto.getMaRap().isBlank()
+                || dto.getMaPhong() == null || dto.getMaPhong().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chọn phim, rạp và phòng chiếu");
+        }
+        kiemTraThoiGianGia(dto.getThoiGianBatDau(), dto.getThoiGianKetThuc(), dto.getGiaVeTu());
+        if (dto.getDinhDang() == null || dto.getDinhDang().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chọn định dạng chiếu");
+        }
+        if (!khoPhim.existsById(dto.getMaPhim())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy phim");
+        }
+    }
+
+    private void kiemTraThoiGianGia(LocalDateTime batDau, LocalDateTime ketThuc, BigDecimal gia) {
+        if (batDau == null || ketThuc == null || !batDau.isBefore(ketThuc)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giờ kết thúc phải sau giờ bắt đầu");
+        }
+        if (batDau.isBefore(ShowtimeTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể tạo hoặc sửa suất chiếu trong quá khứ");
+        }
+        if (gia == null || gia.signum() < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá vé phải từ 0 đồng trở lên");
+        }
+    }
+
     private Cinema.Room timPhong(Cinema rap, String maPhong) {
         if (rap.getDanhSachPhong() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay phong");
@@ -645,9 +630,10 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 new Criteria().orOperator(Criteria.where("cinemaId").is(maRap), Criteria.where("maRap").is(maRap)),
                 new Criteria().orOperator(Criteria.where("roomId").is(maPhong), Criteria.where("maPhong").is(maPhong)),
                 new Criteria().orOperator(
-                        Criteria.where("startTime").gte(ShowtimeTime.stored(batDau)).lt(ShowtimeTime.stored(ketThuc)),
-                        Criteria.where("thoiGianBatDau").gte(ShowtimeTime.stored(batDau)).lt(ShowtimeTime.stored(ketThuc))
-                )
+                        Criteria.where("startTime").lt(ShowtimeTime.stored(ketThuc)),
+                        Criteria.where("thoiGianBatDau").lt(ShowtimeTime.stored(ketThuc))
+                ),
+                new Criteria().orOperator(Criteria.where("endTime").gt(ShowtimeTime.stored(batDau)), Criteria.where("thoiGianKetThuc").gt(ShowtimeTime.stored(batDau)))
         );
         Query truyVan = new Query(phongCriteria);
         truyVan.fields().include("startTime", "endTime", "thoiGianBatDau", "thoiGianKetThuc");
@@ -656,28 +642,23 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     private void kiemTraTrungLich(String maRap, String maPhong, LocalDateTime batDau, LocalDateTime ketThuc, String boQuaId) {
         if (maRap == null || maPhong == null || batDau == null || ketThuc == null) return;
-        LocalDateTime tu = batDau.toLocalDate().atStartOfDay();
-        LocalDateTime den = batDau.toLocalDate().plusDays(1).atStartOfDay();
+        LocalDateTime tu = batDau;
+        LocalDateTime den = ketThuc;
         // Hỗ trợ cả field cũ (maRap/maPhong/thoiGianBatDau) và mới (cinemaId/roomId/startTime)
         Criteria phongCriteria = new Criteria().andOperator(
                 new Criteria().orOperator(Criteria.where("cinemaId").is(maRap), Criteria.where("maRap").is(maRap)),
                 new Criteria().orOperator(Criteria.where("roomId").is(maPhong), Criteria.where("maPhong").is(maPhong)),
                 new Criteria().orOperator(
-                        Criteria.where("startTime").gte(ShowtimeTime.stored(tu)).lt(ShowtimeTime.stored(den)),
-                        Criteria.where("thoiGianBatDau").gte(ShowtimeTime.stored(tu)).lt(ShowtimeTime.stored(den))
-                )
+                        Criteria.where("startTime").lt(ShowtimeTime.stored(den)),
+                        Criteria.where("thoiGianBatDau").lt(ShowtimeTime.stored(den))
+                ),
+                new Criteria().orOperator(Criteria.where("endTime").gt(ShowtimeTime.stored(tu)), Criteria.where("thoiGianKetThuc").gt(ShowtimeTime.stored(tu)))
         );
         Query truyVan = new Query(phongCriteria);
         if (boQuaId != null) truyVan.addCriteria(Criteria.where("id").ne(boQuaId));
         truyVan.fields()
                 .include("startTime", "endTime", "thoiGianBatDau", "thoiGianKetThuc", "cinemaId", "maRap", "roomId", "maPhong");
         List<Showtime> suatTrongNgay = mongoTemplate.find(truyVan, Showtime.class);
-        // #region agent log
-        try {
-            String line = "{\"sessionId\":\"12750d\",\"runId\":\"create-showtime\",\"hypothesisId\":\"C\",\"location\":\"ShowtimeServiceImpl.kiemTraTrungLich\",\"message\":\"conflict query\",\"data\":{\"maRap\":\"" + maRap + "\",\"maPhong\":\"" + maPhong + "\",\"found\":" + suatTrongNgay.size() + ",\"nullStart\":" + suatTrongNgay.stream().filter(s -> s.getThoiGianBatDau() == null).count() + "},\"timestamp\":" + System.currentTimeMillis() + "}\n";
-            java.nio.file.Files.writeString(java.nio.file.Path.of("d:/QLBVXP/debug-12750d.log"), line, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {}
-        // #endregion
         if (coTrungLich(suatTrongNgay, batDau, ketThuc, boQuaId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Phòng đã có suất chiếu trong khung giờ này");

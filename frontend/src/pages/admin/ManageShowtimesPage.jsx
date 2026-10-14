@@ -44,6 +44,10 @@ export default function ManageShowtimesPage() {
   const [goiY, datGoiY] = useState([])
   const [daChon, datDaChon] = useState(new Set())
   const [suatSua, datSuatSua] = useState(null)
+  const [dangLuu, datDangLuu] = useState(false)
+  const dangLuuRef = useRef(false)
+  const [dangGoiY, datDangGoiY] = useState(false)
+  const goiYVersion = useRef(0)
   const [dangMo, datDangMo] = useState(false)
   const [dangMoHangLoat, datDangMoHangLoat] = useState(false)
   const [dangMoAi, datDangMoAi] = useState(false)
@@ -52,6 +56,8 @@ export default function ManageShowtimesPage() {
   const [daChonAi, datDaChonAi] = useState(new Set())
   const [nguonAi, datNguonAi] = useState('')
   const [dangXuLyAi, datDangXuLyAi] = useState(false)
+  const aiVersion = useRef(0)
+  const dangXuLyAiRef = useRef(false)
   const [dangLuuHangLoat, datDangLuuHangLoat] = useState(false)
   const dangLuuHangLoatRef = useRef(false)
   const [tuKhoa, datTuKhoa] = useState('')
@@ -61,13 +67,22 @@ export default function ManageShowtimesPage() {
   const [thongBao, datThongBao] = useState('')
   const vungKetQuaAiRef = useRef(null)
 
-  const taiDuLieu = () => {
-    layDanhSachPhim({ size: 100 }).then((phanHoi) => datDanhSachPhim(phanHoi.content || phanHoi))
-    layDanhSachRap().then(datDanhSachRap)
-    layLichSuSuatChieu().then(datLichSu).catch(() => datLichSu([]))
+  const taiDuLieu = async () => {
+    try {
+      const [phim, rap, suat] = await Promise.all([layDanhSachPhim({ size: 100 }), layDanhSachRap(), layLichSuSuatChieu()])
+      datDanhSachPhim(phim.content || phim)
+      datDanhSachRap(rap)
+      datLichSu(suat)
+    } catch (loi) { datThongBao(layThongBaoLoiApi(loi)) }
   }
 
   useEffect(() => { taiDuLieu() }, [])
+
+  useEffect(() => {
+    aiVersion.current += 1
+    datGoiYAi([])
+    datDaChonAi(new Set())
+  }, [aiDuLieu.maRap, aiDuLieu.ngayChieu, aiDuLieu.dinhDang, aiDuLieu.danhSachMaPhim])
 
   const rapDaChon = danhSachRap.find((rap) => rap.id === duLieu.maRap)
   const giaVeTuNhap = Number(duLieu.giaVeTu) || 0
@@ -129,8 +144,25 @@ export default function ManageShowtimesPage() {
     })
   }, [lichSu, tuKhoa, locRap, locPhim])
 
-  const xuLyThayDoi = (suKien) => datDuLieu((cu) => ({ ...cu, [suKien.target.name]: suKien.target.value, ...(suKien.target.name === 'maRap' ? { maPhong: '' } : {}) }))
-  const xuLyHangLoat = (suKien) => datHangLoat((cu) => ({ ...cu, [suKien.target.name]: suKien.target.value, ...(suKien.target.name === 'maRap' ? { maPhong: '' } : {}) }))
+  const xuLyThayDoi = (suKien) => {
+    const { name, value } = suKien.target
+    datDuLieu((cu) => {
+      const moi = { ...cu, [name]: value, ...(name === 'maRap' ? { maPhong: '' } : {}) }
+      const phim = danhSachPhim.find((p) => p.id === moi.maPhim)
+      if ((name === 'maPhim' || name === 'thoiGianBatDau') && moi.thoiGianBatDau && phim?.duration) {
+        moi.thoiGianKetThuc = chuyenLocalDatetime(new Date(new Date(moi.thoiGianBatDau).getTime() + phim.duration * 60000))
+      }
+      return moi
+    })
+  }
+  const xuLyHangLoat = (suKien) => {
+    goiYVersion.current += 1
+    datGoiY([])
+    datDaChon(new Set())
+    datThongBao('')
+    datHangLoat((cu) => ({ ...cu, [suKien.target.name]: suKien.target.value, ...(suKien.target.name === 'maRap' ? { maPhong: '' } : {}) }))
+  }
+
 
   const moBieuMau = (suat = null) => {
     datSuatSua(suat)
@@ -190,12 +222,15 @@ export default function ManageShowtimesPage() {
   }
 
   const taoLichAi = async () => {
+    if (dangXuLyAiRef.current) return
+    const version = ++aiVersion.current
     if (!aiDuLieu.maRap) { datThongBaoAi('Chọn rạp trước khi xếp lịch.'); return }
     if (!aiDuLieu.danhSachMaPhim.length) { datThongBaoAi('Chọn ít nhất một phim.'); return }
     if (aiDuLieu.danhSachMaPhim.length > GIOI_HAN_PHIM_AI) {
       datThongBaoAi(`Chọn tối đa ${GIOI_HAN_PHIM_AI} phim để AI xếp lịch nhanh và chính xác hơn.`)
       return
     }
+    dangXuLyAiRef.current = true
     datDangXuLyAi(true)
     datThongBaoAi('Đang gọi AI xếp lịch, vui lòng chờ...')
     try {
@@ -205,6 +240,7 @@ export default function ManageShowtimesPage() {
         dinhDang: aiDuLieu.dinhDang,
         danhSachMaPhim: aiDuLieu.danhSachMaPhim,
       })
+      if (version !== aiVersion.current) return
       const danhSach = ketQua.danhSachGoiY || []
       const khaDung = danhSach.filter((s) => !s.trungLich)
       datGoiYAi(danhSach)
@@ -214,6 +250,7 @@ export default function ManageShowtimesPage() {
       datThongBaoAi(`AI gợi ý ${danhSach.length} suất (${khaDung.length} có thể áp dụng${soTrung ? `, ${soTrung} trùng lịch` : ''}). Cuộn xuống để xem chi tiết.`)
       setTimeout(() => vungKetQuaAiRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
     } catch (loi) {
+      if (version !== aiVersion.current) return
       const maLoi = loi.response?.status
       if (maLoi === 404 || maLoi === 405) {
         datThongBaoAi('Backend chưa có API AI. Chạy stop-backend.cmd rồi start-backend.cmd để khởi động lại.')
@@ -223,6 +260,7 @@ export default function ManageShowtimesPage() {
         datThongBaoAi(layThongBaoLoiApi(loi))
       }
     } finally {
+      dangXuLyAiRef.current = false
       datDangXuLyAi(false)
     }
   }
@@ -239,9 +277,12 @@ export default function ManageShowtimesPage() {
   }
 
   const apDungLichAi = async () => {
+    if (dangXuLyAiRef.current) return
     const danhSachChon = goiYAi.filter((s) => daChonAi.has(s.maKhoa) && !s.trungLich)
     if (!danhSachChon.length) { datThongBao('Chọn ít nhất một suất không trùng lịch.'); return }
+    dangXuLyAiRef.current = true
     datDangXuLyAi(true)
+    let tong = 0
     try {
       const nhom = {}
       for (const suat of danhSachChon) {
@@ -253,7 +294,6 @@ export default function ManageShowtimesPage() {
           giaVeTu: suat.giaVeTu,
         })
       }
-      let tong = 0
       for (const g of Object.values(nhom)) {
         const ketQua = await taoHangLoatSuatChieu({
           maPhim: g.maPhim,
@@ -263,21 +303,31 @@ export default function ManageShowtimesPage() {
           danhSachSuat: g.danhSachSuat,
         })
         tong += ketQua.soLuong || 0
+        const daLuu = new Set(danhSachChon.filter((s) => s.maPhim === g.maPhim && s.maPhong === g.maPhong).map((s) => s.maKhoa))
+        datGoiYAi((cu) => cu.filter((s) => !daLuu.has(s.maKhoa)))
+        datDaChonAi((cu) => new Set([...cu].filter((khoa) => !daLuu.has(khoa))))
       }
       datThongBao(`Đã áp dụng ${tong} suất chiếu từ lịch AI.`)
       datDangMoAi(false)
       taiDuLieu()
     } catch (loi) {
-      datThongBao(loi.response?.data?.message || 'Không thể áp dụng lịch AI.')
+      datThongBaoAi(`Đã lưu ${tong} suất. ${layThongBaoLoiApi(loi)} Các suất còn lại chưa được lưu.`)
+      taiDuLieu()
     } finally {
+      dangXuLyAiRef.current = false
       datDangXuLyAi(false)
     }
   }
 
   const taoGoiY = async () => {
+    if (dangGoiY) return
+    const version = ++goiYVersion.current
     if (!hangLoat.maPhim) { datThongBao('Chọn phim trước khi gợi ý suất.'); return }
     if (!hangLoat.maRap || !hangLoat.maPhong) { datThongBao('Chọn rạp và phòng trước khi gợi ý suất.'); return }
     try {
+      datDangGoiY(true)
+      datGoiY([])
+      datDaChon(new Set())
       const ketQua = await goiYSuatChieu({
         maPhim: hangLoat.maPhim,
         maRap: hangLoat.maRap,
@@ -292,19 +342,21 @@ export default function ManageShowtimesPage() {
         giaVeTuToi: Number(hangLoat.giaVeTuToi),
         gioApGiaToi: Number(hangLoat.gioApGiaToi),
       })
+      if (version !== goiYVersion.current) return
       const khaDung = ketQua.filter((s) => !s.trungLich)
       datGoiY(ketQua)
       datDaChon(new Set(khaDung.map((s) => s.maKhoa)))
       const soTrung = ketQua.length - khaDung.length
       datThongBao(`Đã gợi ý ${ketQua.length} suất (${khaDung.length} có thể tạo${soTrung ? `, ${soTrung} trùng lịch phòng` : ''}).`)
     } catch (loi) {
+      if (version !== goiYVersion.current) return
       const maLoi = loi.response?.status
       if (maLoi === 405 || maLoi === 404) {
         datThongBao('Backend chưa cập nhật. Chạy stop-backend.cmd rồi start-backend.cmd để khởi động lại.')
       } else {
         datThongBao(loi.response?.data?.message || 'Không thể gợi ý suất chiếu.')
       }
-    }
+    } finally { datDangGoiY(false) }
   }
 
   const chonTatCa = (chon) => datDaChon(chon ? new Set(goiY.filter((s) => !s.trungLich).map((s) => s.maKhoa)) : new Set())
@@ -352,6 +404,12 @@ export default function ManageShowtimesPage() {
 
   const luuSuatChieu = async (suKien) => {
     suKien.preventDefault()
+    if (dangLuuRef.current) return
+    if (duLieu.thoiGianKetThuc <= duLieu.thoiGianBatDau) { datThongBao('Giờ kết thúc phải sau giờ bắt đầu.'); return }
+    if (new Date(duLieu.thoiGianBatDau) < new Date()) { datThongBao('Giờ bắt đầu phải ở tương lai.'); return }
+    dangLuuRef.current = true
+    datDangLuu(true)
+    datThongBao('')
     try {
       const chuanHoaIso = (giatri) => {
         if (!giatri) return giatri
@@ -372,7 +430,7 @@ export default function ManageShowtimesPage() {
       taiDuLieu()
     } catch (loi) {
       datThongBao(layThongBaoLoiApi(loi) || loi.response?.data?.message || 'Không thể lưu suất chiếu.')
-    }
+    } finally { dangLuuRef.current = false; datDangLuu(false) }
   }
 
   const xoaSuat = async (id) => {
@@ -421,6 +479,7 @@ export default function ManageShowtimesPage() {
             </div>
             </AdminModalHeader>
             <AdminModalBody>
+            {thongBao && <p role="alert" className="mb-4 rounded-xl bg-amber-500/10 p-3 text-sm text-amber-200">{thongBao}</p>}
             {thongBaoAi && (
               <p className={`mb-4 rounded-lg px-4 py-2 text-sm ${thongBaoAi.includes('gợi ý') ? 'bg-emerald-500/15 text-emerald-200' : 'bg-cinema-500/10 text-cinema-400'}`}>
                 {thongBaoAi}
@@ -568,6 +627,7 @@ export default function ManageShowtimesPage() {
             </div>
             </AdminModalHeader>
             <AdminModalBody>
+            {thongBao && <p role="alert" className="mb-4 rounded-xl bg-amber-500/10 p-3 text-sm text-amber-200">{thongBao}</p>}
             {thongBao && <p className="mb-4 rounded-lg bg-cinema-500/10 px-4 py-2 text-sm text-cinema-400">{thongBao}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-sm text-slate-300 sm:col-span-2">Phim <span className="text-red-400">*</span><select required name="maPhim" value={hangLoat.maPhim} onChange={xuLyHangLoat} className="o-nhap mt-2"><option value="">— Chọn phim (bắt buộc) —</option>{danhSachPhim.map((p) => <option key={p.id} value={p.id}>{p.title} ({p.duration} phút)</option>)}</select></label>
@@ -603,7 +663,7 @@ export default function ManageShowtimesPage() {
               </div>
             )}
 
-            <button type="button" onClick={taoGoiY} className="nut-chinh mt-4 w-full">Gợi ý khung giờ</button>
+            <button type="button" disabled={dangGoiY} onClick={taoGoiY} className="nut-chinh mt-4 w-full">Gợi ý khung giờ</button>
 
             {goiY.length > 0 && (
               <div className="mt-6">
@@ -667,6 +727,7 @@ export default function ManageShowtimesPage() {
             </div>
             </AdminModalHeader>
             <AdminModalBody className="space-y-4">
+              {thongBao && <p role="alert" className="rounded-xl bg-amber-500/10 p-3 text-sm text-amber-200">{thongBao}</p>}
               <label className="block text-sm text-slate-300">Phim<select required name="maPhim" value={duLieu.maPhim} onChange={xuLyThayDoi} className="o-nhap mt-2"><option value="">Chọn phim</option>{danhSachPhim.map((phim) => <option key={phim.id} value={phim.id}>{phim.title}</option>)}</select></label>
               <label className="block text-sm text-slate-300">Rạp<select required name="maRap" value={duLieu.maRap} onChange={xuLyThayDoi} className="o-nhap mt-2"><option value="">Chọn rạp</option>{danhSachRap.map((rap) => <option key={rap.id} value={rap.id}>{rap.khuVuc ? `${rap.khuVuc} · ` : ''}{rap.tenRap}</option>)}</select></label>
               <label className="block text-sm text-slate-300">Phòng<select required name="maPhong" value={duLieu.maPhong} onChange={xuLyThayDoi} className="o-nhap mt-2" disabled={!rapDaChon}><option value="">Chọn phòng</option>{rapDaChon?.danhSachPhong?.map((phong) => <option key={phong.maPhong} value={phong.maPhong}>{phong.tenPhong}</option>)}</select></label>
@@ -686,7 +747,7 @@ export default function ManageShowtimesPage() {
               </div>
             </AdminModalBody>
             <AdminModalFooter>
-            <button className="nut-chinh w-full">{suatSua ? 'Cập nhật' : 'Tạo suất chiếu'}</button>
+            <button disabled={dangLuu} className="nut-chinh w-full disabled:opacity-50">{dangLuu ? 'Đang lưu...' : suatSua ? 'Cập nhật' : 'Tạo suất chiếu'}</button>
             </AdminModalFooter>
           </form>
         </AdminModalOverlay>

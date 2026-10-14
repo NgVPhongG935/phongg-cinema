@@ -32,6 +32,7 @@ class ShowtimeBatchCreateTest {
     private ShowtimeBatchCreateDto request(List<ShowtimeSlotDto> slots) {
         var room = Cinema.Room.builder().maPhong("P01").danhSachGhe(List.of(
                 Cinema.Seat.builder().soGhe("A1").loaiGhe("NORMAL").build())).build();
+        when(movies.existsById("movie")).thenReturn(true);
         when(cinemas.findById("cinema")).thenReturn(Optional.of(Cinema.builder().id("cinema").danhSachPhong(List.of(room)).build()));
         when(mongo.find(any(Query.class), eq(Showtime.class))).thenReturn(List.of());
         var dto = new ShowtimeBatchCreateDto();
@@ -41,6 +42,45 @@ class ShowtimeBatchCreateTest {
     private ShowtimeSlotDto slot(String start, String end) {
         var slot = new ShowtimeSlotDto(); slot.setThoiGianBatDau(LocalDateTime.parse(start));
         slot.setThoiGianKetThuc(LocalDateTime.parse(end)); slot.setGiaVeTu(BigDecimal.valueOf(69000)); return slot;
+    }
+    @Test
+    void singleCreateRejectsInvalidTimesAndPriceBeforeWriting() {
+        request(List.of());
+        var dto = new com.cinema.booking.dto.ShowtimeDto();
+        dto.setMaPhim("movie"); dto.setMaRap("cinema"); dto.setMaPhong("P01"); dto.setDinhDang("2D");
+        dto.setThoiGianBatDau(LocalDateTime.now().plusDays(2));
+        dto.setThoiGianKetThuc(dto.getThoiGianBatDau().minusHours(1)); dto.setGiaVeTu(BigDecimal.valueOf(69000));
+        assertThatThrownBy(() -> service.taoSuatChieuMoi(dto)).isInstanceOf(ResponseStatusException.class);
+        dto.setThoiGianKetThuc(dto.getThoiGianBatDau().plusHours(2)); dto.setGiaVeTu(BigDecimal.valueOf(-1));
+        assertThatThrownBy(() -> service.taoSuatChieuMoi(dto)).isInstanceOf(ResponseStatusException.class);
+        verifyNoInteractions(showtimes);
+        verify(mongo, never()).find(any(Query.class), eq(Showtime.class));
+    }
+    @Test
+    void singleCreateDetectsCrossMidnightConflictWithOverlapQuery() {
+        request(List.of());
+        var dto = new com.cinema.booking.dto.ShowtimeDto();
+        dto.setMaPhim("movie"); dto.setMaRap("cinema"); dto.setMaPhong("P01"); dto.setDinhDang("2D");
+        var midnight = java.time.LocalDate.now().plusDays(2).atStartOfDay();
+        dto.setThoiGianBatDau(midnight); dto.setThoiGianKetThuc(midnight.plusHours(2)); dto.setGiaVeTu(BigDecimal.valueOf(69000));
+        when(mongo.find(any(Query.class), eq(Showtime.class))).thenReturn(List.of(Showtime.builder()
+                .startTime(midnight.minusHours(1)).endTime(midnight.plusHours(1)).build()));
+        assertThatThrownBy(() -> service.taoSuatChieuMoi(dto)).isInstanceOf(ResponseStatusException.class);
+        ArgumentCaptor<Query> query = ArgumentCaptor.forClass(Query.class);
+        verify(mongo).find(query.capture(), eq(Showtime.class));
+        assertThat(query.getValue().getQueryObject().toString()).contains("endTime", "$gt", "$lt").doesNotContain("$gte");
+        verify(showtimes, never()).save(any());
+    }
+    @Test
+    void previewRejectsZeroRoundingStepInsteadOfCrashing() {
+        request(List.of());
+        when(movies.findById("movie")).thenReturn(Optional.of(com.cinema.booking.document.Movie.builder().duration(100).build()));
+        var dto = new com.cinema.booking.dto.ShowtimeGenerateRequestDto();
+        dto.setMaPhim("movie"); dto.setMaRap("cinema"); dto.setMaPhong("P01");
+        dto.setTuNgay(java.time.LocalDate.now().plusDays(2)); dto.setDenNgay(dto.getTuNgay());
+        dto.setTuGio(java.time.LocalTime.of(9, 0)); dto.setDenGio(java.time.LocalTime.of(23, 0)); dto.setBuocLamTronPhut(0);
+        assertThatThrownBy(() -> service.goiYSuatChieu(dto)).isInstanceOf(ResponseStatusException.class);
+        verifyNoInteractions(mongo, showtimes);
     }
     @Test
     void createsLargeBatchWithOneReadAndOneInsertAndInitializesSeats() {
