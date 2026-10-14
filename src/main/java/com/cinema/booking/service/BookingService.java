@@ -7,6 +7,7 @@ import com.cinema.booking.dto.HoldSeatsResponse;
 
 public interface BookingService {
     HoldSeatsResponse giuGheTamThoi(HoldSeatsRequest yeuCau, String maNguoiDung);
+    void boGiuGhe(HoldSeatsRequest yeuCau, String maNguoiDung);
     Ticket taoVeSauThanhToan(CreateTicketRequest yeuCau);
     Ticket taoVaGuiYeuCauCk(CreateTicketRequest yeuCau);
     Ticket guiYeuCauThanhToan(String maVe);

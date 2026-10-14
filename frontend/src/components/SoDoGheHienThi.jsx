@@ -18,12 +18,13 @@ function layLoaiIcon({ ghe, dangChon, voHieu, cheDoAdmin }) {
   return 'thuong'
 }
 
-function NutGhe({ ghe, dangChon, voHieu, cheDoAdmin, onChon, onVe }) {
+function NutGhe({ ghe, dangChon, voHieu, cheDoAdmin, onChon, onVe, maNguoiDung }) {
   if (!ghe) return <span className="inline-block h-11 w-9 sm:h-12 sm:w-10" />
   const loaiIcon = layLoaiIcon({ ghe, dangChon, voHieu, cheDoAdmin })
   const gachCheo = !cheDoAdmin && voHieu
   const nhanGhe = ghe.soGhe
-  const voHieuNut = !cheDoAdmin && (voHieu || ghe.trangThai === 'HELD')
+  const tuGiu = maNguoiDung && (ghe.heldBy || ghe.nguoiGiuGhe) === maNguoiDung
+  const voHieuNut = !cheDoAdmin && (voHieu || (ghe.trangThai === 'HELD' && !tuGiu))
   const lopChon = dangChon && !cheDoAdmin ? 'ring-2 ring-blue-400/80 rounded-lg shadow-[0_0_14px_rgba(96,165,250,0.45)]' : ''
 
   return (
@@ -42,7 +43,7 @@ function NutGhe({ ghe, dangChon, voHieu, cheDoAdmin, onChon, onVe }) {
   )
 }
 
-function HangGheThuong({ hang, danhSachGhe, gheChon, cheDoAdmin, onChon, onVe }) {
+function HangGheThuong({ hang, danhSachGhe, gheChon, cheDoAdmin, onChon, onVe, maNguoiDung }) {
   const timGhe = (so) => danhSachGhe.find((g) => g.soGhe === `${hang}${so}`)
   const renderKhu = (danhSachSo) => (
     <div className="flex items-center gap-0.5 sm:gap-1">
@@ -55,6 +56,7 @@ function HangGheThuong({ hang, danhSachGhe, gheChon, cheDoAdmin, onChon, onVe })
           cheDoAdmin={cheDoAdmin}
           onChon={onChon}
           onVe={onVe}
+          maNguoiDung={maNguoiDung}
         />
       ))}
     </div>
@@ -73,7 +75,7 @@ function HangGheThuong({ hang, danhSachGhe, gheChon, cheDoAdmin, onChon, onVe })
   )
 }
 
-function HangGheDoi({ danhSachGhe, gheChon, cheDoAdmin, onChon, onVe }) {
+function HangGheDoi({ danhSachGhe, gheChon, cheDoAdmin, onChon, onVe, maNguoiDung }) {
   const gheHang = danhSachGhe.filter((g) => g.soGhe.startsWith('L')).sort((a, b) => laySoTuGhe(a.soGhe) - laySoTuGhe(b.soGhe))
   const cacCap = []
   for (let i = 0; i < gheHang.length; i += 2) cacCap.push([gheHang[i], gheHang[i + 1]])
@@ -84,7 +86,8 @@ function HangGheDoi({ danhSachGhe, gheChon, cheDoAdmin, onChon, onVe }) {
     const [ghe1, ghe2] = cap
     const dangChon = gheChon?.includes(ghe1.soGhe) || gheChon?.includes(ghe2?.soGhe)
     const voHieu = ghe1.trangThai === 'BOOKED' || ghe2?.trangThai === 'BOOKED'
-    const dangGiu = ghe1.trangThai === 'HELD' || ghe2?.trangThai === 'HELD'
+    const dangGiu = cap.some((ghe) => ghe?.trangThai === 'HELD'
+      && (!maNguoiDung || (ghe.heldBy || ghe.nguoiGiuGhe) !== maNguoiDung))
     const loaiIcon = cheDoAdmin
       ? (ghe1.loaiGhe === 'COUPLE' ? 'adminDoi' : 'trang')
       : dangChon ? 'chon' : voHieu ? 'daDat' : dangGiu ? 'giu' : 'doi'
@@ -122,7 +125,7 @@ function HangGheDoi({ danhSachGhe, gheChon, cheDoAdmin, onChon, onVe }) {
   )
 }
 
-export default function SoDoGheHienThi({ danhSachGhe = [], gheChon = [], cheDoAdmin = false, onChon, onVe }) {
+export default function SoDoGheHienThi({ danhSachGhe = [], gheChon = [], cheDoAdmin = false, onChon, onVe, maNguoiDung }) {
   const hangThuong = danhSachGhe.filter((g) => !g.soGhe.startsWith('L'))
   const hangLabels = [...new Set(hangThuong.map((g) => g.soGhe[0]))].sort()
   const coGheDoi = danhSachGhe.some((g) => g.soGhe.startsWith('L'))
@@ -142,10 +145,11 @@ export default function SoDoGheHienThi({ danhSachGhe = [], gheChon = [], cheDoAd
           cheDoAdmin={cheDoAdmin}
           onChon={onChon}
           onVe={onVe}
+          maNguoiDung={maNguoiDung}
         />
       ))}
       {(coGheDoi || cheDoAdmin) && (
-        <HangGheDoi danhSachGhe={danhSachGhe} gheChon={gheChon} cheDoAdmin={cheDoAdmin} onChon={onChon} onVe={onVe} />
+        <HangGheDoi danhSachGhe={danhSachGhe} gheChon={gheChon} cheDoAdmin={cheDoAdmin} onChon={onChon} onVe={onVe} maNguoiDung={maNguoiDung} />
       )}
     </div>
   )

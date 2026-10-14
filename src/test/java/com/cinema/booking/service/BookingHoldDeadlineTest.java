@@ -35,6 +35,43 @@ class BookingHoldDeadlineTest {
         var dto = new HoldSeatsRequest(); dto.setMaSuatChieu("show"); dto.setDanhSachGheChon(List.of(seats)); return dto;
     }
     @Test
+    void releasingOwnSeatPreservesOtherUsersAndBookedSeatsAndRemainingDeadline() {
+        var a = seat("A1"); var b = seat("A2"); var other = seat("A3"); var booked = seat("A4");
+        show(a, b, other, booked);
+        service.giuGheTamThoi(request("A1", "A2"), "user");
+        var deadline = b.getHeldExpiresAt();
+        other.setStatus(SeatAvailability.HELD); other.setHeldBy("other"); other.setHeldExpiresAt(deadline);
+        booked.setStatus(SeatAvailability.BOOKED);
+        service.boGiuGhe(request("A1", "A3", "A4"), "user");
+        assertThat(a.getStatus()).isEqualTo(SeatAvailability.AVAILABLE);
+        assertThat(a.getHeldBy()).isNull(); assertThat(a.getHeldExpiresAt()).isNull();
+        assertThat(b.getStatus()).isEqualTo(SeatAvailability.HELD); assertThat(b.getHeldExpiresAt()).isEqualTo(deadline);
+        assertThat(other.getStatus()).isEqualTo(SeatAvailability.HELD); assertThat(other.getHeldBy()).isEqualTo("other");
+        assertThat(booked.getStatus()).isEqualTo(SeatAvailability.BOOKED);
+        clearInvocations(shows);
+        service.boGiuGhe(request("A1"), "user");
+        verify(shows, never()).save(any());
+    }
+    @Test
+    void replacingSelectionReleasesDroppedSeatsAndKeepsDeadline() {
+        var a = seat("A1"); var b = seat("A2"); show(a, b);
+        var deadline = service.giuGheTamThoi(request("A1"), "user").getThoiGianHetHan();
+        assertThat(service.giuGheTamThoi(request("A2"), "user").getThoiGianHetHan()).isEqualTo(deadline);
+        assertThat(a.getStatus()).isEqualTo(SeatAvailability.AVAILABLE);
+        assertThat(a.getHeldBy()).isNull();
+        assertThat(b.getStatus()).isEqualTo(SeatAvailability.HELD);
+    }
+    @Test
+    void failedReplacementDoesNotReleaseExistingSelection() {
+        var a = seat("A1"); var b = seat("A2"); show(a, b);
+        service.giuGheTamThoi(request("A1"), "user");
+        b.setStatus(SeatAvailability.BOOKED);
+        clearInvocations(shows);
+        assertThatThrownBy(() -> service.giuGheTamThoi(request("A2"), "user")).isInstanceOf(ResponseStatusException.class);
+        assertThat(a.getStatus()).isEqualTo(SeatAvailability.HELD);
+        verify(shows, never()).save(any());
+    }
+    @Test
     void firstHoldLastsFiveMinutesAndReturnsTimezoneIndependentDeadline() {
         var seat = seat("A1"); show(seat);
         long before = System.currentTimeMillis();

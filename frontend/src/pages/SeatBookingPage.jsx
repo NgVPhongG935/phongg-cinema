@@ -1,19 +1,20 @@
 import { Clock3, Ticket } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { MauGheChuThich } from '../components/IconGheSofa'
 import SoDoGheHienThi from '../components/SoDoGheHienThi'
 import { useAuth } from '../context/AuthContext'
-import { giuGheTamThoi, laySoDoGhe } from '../services/showtimeService'
+import { boGiuGhe, giuGheTamThoi, laySoDoGhe } from '../services/showtimeService'
+import { layThongBaoLoiApi } from '../utils/layThongBaoLoiApi'
 import { dinhDangTien } from '../utils/formatters'
 import { chuanHoaGheDatVe, layCapGheDoi } from '../utils/soDoGhe'
 import { lamTronNghin, tinhGiaGhe } from '../utils/tinhGiaVe'
 import useThoiGianGiuGhe, { docPhienGiuGhe } from '../hooks/useThoiGianGiuGhe'
 
-const gheKhoiPhuc = (id, maNguoiDung, trangThai) => {
+const gheKhoiPhuc = (id, maNguoiDung) => {
   const phien = docPhienGiuGhe(id, maNguoiDung)
   if (phien) return phien.gheChon
-  return trangThai?.thoiGianHetHanMs > Date.now() && Array.isArray(trangThai.gheChon) ? trangThai.gheChon : []
+  return []
 }
 
 export default function SeatBookingPage() {
@@ -24,9 +25,12 @@ export default function SeatBookingPage() {
   const [danhSachGhe, datDanhSachGhe] = useState([])
   const [giaVeTu, datGiaVeTu] = useState(0)
   const [gheChon, datGheChon] = useState([])
-  const { giayConLai, thoiGianHetHanMs, luuThoiGianGiuGhe, xoaPhienGiuGhe } = useThoiGianGiuGhe(id, nguoiDung?.id, viTri.state)
+  const { giayConLai, thoiGianHetHanMs, luuThoiGianGiuGhe, xoaPhienGiuGhe } = useThoiGianGiuGhe(id, nguoiDung?.id)
   const [dangXuLy, datDangXuLy] = useState(false)
   const [gheDaGiu, datGheDaGiu] = useState([])
+  const dangXuLyRef = useRef(false)
+  const [loiChonGhe, datLoiChonGhe] = useState('')
+  const tuGiu = (ghe) => ghe?.trangThai === 'HELD' && nguoiDung?.id && (ghe.heldBy || ghe.nguoiGiuGhe) === nguoiDung.id
   const daGiuGheChon = giayConLai > 0 && gheChon.length === gheDaGiu.length && gheChon.every(so => gheDaGiu.includes(so))
 
   useEffect(() => {
@@ -77,23 +81,54 @@ export default function SeatBookingPage() {
   const giaVip = tinhGiaGhe(giaVeTu, 'VIP')
   const giaCouple = tinhGiaGhe(giaVeTu, 'COUPLE')
 
+  const boChonGhe = async (danhSachSoGhe) => {
+    if (dangXuLyRef.current) return
+    const canBoGiu = danhSachSoGhe.filter((so) => tuGiu(danhSachGhe.find((g) => g.soGhe === so)))
+    datLoiChonGhe('')
+    dangXuLyRef.current = true
+    datDangXuLy(true)
+    try {
+      if (canBoGiu.length) await boGiuGhe(id, canBoGiu)
+      datGheChon((cu) => cu.filter((so) => !danhSachSoGhe.includes(so)))
+      const conGiu = gheDaGiu.filter((so) => !danhSachSoGhe.includes(so))
+      datGheDaGiu(conGiu)
+      if (conGiu.length && thoiGianHetHanMs > Date.now()) luuThoiGianGiuGhe({ thoiGianHetHanEpochMs: thoiGianHetHanMs }, conGiu)
+      else xoaPhienGiuGhe()
+      datDanhSachGhe((cu) => cu.map((g) => canBoGiu.includes(g.soGhe)
+        ? { ...g, trangThai: 'AVAILABLE', status: 'AVAILABLE', heldBy: null, nguoiGiuGhe: null, heldExpiresAt: null } : g))
+    } catch (loi) {
+      datLoiChonGhe(layThongBaoLoiApi(loi))
+    } finally {
+      dangXuLyRef.current = false
+      datDangXuLy(false)
+    }
+  }
+
   const chonGhe = (ghe) => {
-    if (ghe.trangThai !== 'AVAILABLE' || dangXuLy) return
+    if ((ghe.trangThai !== 'AVAILABLE' && !tuGiu(ghe)) || dangXuLyRef.current) return
     const danhSachSoGhe = ghe.loaiGhe === 'COUPLE' ? layCapGheDoi(ghe.soGhe) : [ghe.soGhe]
+    if (danhSachSoGhe.some((so) => {
+      const muc = danhSachGhe.find((g) => g.soGhe === so)
+      return !muc || (muc.trangThai !== 'AVAILABLE' && !tuGiu(muc))
+    })) return
     const daChonHet = danhSachSoGhe.every((so) => gheChon.includes(so))
-    if (daChonHet) datGheChon((cu) => cu.filter((so) => !danhSachSoGhe.includes(so)))
+    if (daChonHet) boChonGhe(danhSachSoGhe)
     else datGheChon((cu) => [...new Set([...cu, ...danhSachSoGhe])])
   }
 
   const giuGhe = async () => {
     if (!nguoiDung) return window.dispatchEvent(new Event('open-auth-modal'))
     if (!gheChon.length) return
+    if (dangXuLyRef.current) return
+    dangXuLyRef.current = true
     datDangXuLy(true)
     try {
       const phanHoi = await giuGheTamThoi(id, gheChon, nguoiDung.id)
       luuThoiGianGiuGhe(phanHoi, gheChon)
       datGheDaGiu([...gheChon])
-      datDanhSachGhe((cu) => cu.map((ghe) => (gheChon.includes(ghe.soGhe) ? { ...ghe, trangThai: 'HELD', nguoiGiuGhe: nguoiDung.id } : ghe)))
+      datDanhSachGhe((cu) => cu.map((ghe) => (gheChon.includes(ghe.soGhe)
+        ? { ...ghe, trangThai: 'HELD', status: 'HELD', heldBy: nguoiDung.id, nguoiGiuGhe: nguoiDung.id }
+        : tuGiu(ghe) ? { ...ghe, trangThai: 'AVAILABLE', status: 'AVAILABLE', heldBy: null, nguoiGiuGhe: null } : ghe)))
     } catch (loi) {
       window.alert(loi.response?.data?.message || 'Không thể giữ ghế đã chọn')
       laySoDoGhe(id).then(({ giaVeTu: gia, danhSachGhe: danhSach }) => {
@@ -101,6 +136,7 @@ export default function SeatBookingPage() {
         datDanhSachGhe(danhSach.map((ghe) => chuanHoaGheDatVe(ghe, gia)))
       })
     } finally {
+      dangXuLyRef.current = false
       datDangXuLy(false)
     }
   }
@@ -135,7 +171,7 @@ export default function SeatBookingPage() {
           <p className="mb-8 text-center text-xs font-semibold tracking-[.5em] text-slate-400 sm:mb-10 sm:tracking-[.6em]">MÀN HÌNH</p>
 
           <div className="mx-auto flex w-full min-w-[680px] max-w-5xl flex-col gap-1.5 sm:gap-2">
-            <SoDoGheHienThi danhSachGhe={danhSachGhe} gheChon={gheChon} onChon={chonGhe} />
+            <SoDoGheHienThi danhSachGhe={danhSachGhe} gheChon={gheChon} onChon={chonGhe} maNguoiDung={nguoiDung?.id} />
           </div>
 
           <div className="mx-auto mt-8 flex w-full max-w-5xl flex-wrap items-center justify-center gap-x-5 gap-y-3 rounded-xl bg-white/5 px-4 py-4 text-xs text-slate-300 sm:gap-x-6 sm:text-sm">
@@ -157,6 +193,9 @@ export default function SeatBookingPage() {
           <div className="my-5 border-y border-white/10 py-4 text-sm">
             <p className="text-slate-400">Ghế đã chọn</p>
             <p className="mt-2 font-semibold">{gheChon.join(', ') || 'Chưa chọn ghế'}</p>
+            {gheChon.length > 0 && <button type="button" disabled={dangXuLy} onClick={() => boChonGhe(gheChon)} className="mt-3 text-sm text-fuchsia-300 hover:underline disabled:opacity-50">Bỏ chọn tất cả</button>}
+            <p className="mt-2 text-xs text-slate-400">Bấm lại ghế đã chọn để bỏ chọn hoặc đổi chỗ.</p>
+            {loiChonGhe && <p role="alert" className="mt-2 text-sm text-amber-300">{loiChonGhe}</p>}
           </div>
           <div className="flex justify-between text-lg font-bold">
             <span>Tổng cộng</span>

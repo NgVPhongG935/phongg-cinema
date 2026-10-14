@@ -32,6 +32,7 @@ export const giuGheTamThoi = async (maSuatChieu, danhSachGheChon, maNguoiDung) =
 export const taoSuatChieu = (duLieu) => {
   return apiClient.post('/showtimes/admin', duLieu).then((phanHoi) => phanHoi.data)
 }
+export const boGiuGhe = (maSuatChieu, danhSachGheChon) => apiClient.post(`/showtimes/${maSuatChieu}/release-seats`, { danhSachGheChon }).then((phanHoi) => phanHoi.data)
 export const goiYSuatChieu = (duLieu) => apiClient.post('/showtimes/admin/preview-slots', duLieu).then((phanHoi) => phanHoi.data)
 export const taoHangLoatSuatChieu = (duLieu) => apiClient.post('/showtimes/admin/batch', duLieu).then((phanHoi) => phanHoi.data)
 export const goiYXepLichAi = (duLieu) => apiClient.post('/showtimes/ai-generate', duLieu, { timeout: 90000 }).then((phanHoi) => phanHoi.data)

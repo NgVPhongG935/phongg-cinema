@@ -29,6 +29,7 @@ import java.util.List;
 public class ShowtimeController {
     private final ShowtimeService dichVuSuatChieu;
     private final BookingService dichVuDatVe;
+    private final com.cinema.booking.repository.UserRepository khoNguoiDung;
     @GetMapping public List<ShowtimeResponseDto> layLichChieuTheoPhimVaNgay(@RequestParam String maPhim, @RequestParam String ngayChieu, @RequestParam(required = false) String maRap) { return dichVuSuatChieu.layLichChieuTheoPhimVaNgay(maPhim, ngayChieu, maRap); }
     @GetMapping("/cinema-day") public List<PhimSuatHomNayDto> layLichChieuHomNayTheoRap(@RequestParam String maRap, @RequestParam String ngayChieu) { return dichVuSuatChieu.layLichChieuHomNayTheoRap(maRap, ngayChieu); }
     @GetMapping("/admin/history") @PreAuthorize("hasRole('ADMIN')") public List<ShowtimeResponseDto> layLichSuSuatChieuAdmin() { return dichVuSuatChieu.layLichSuSuatChieuAdmin(); }
@@ -47,6 +48,13 @@ public class ShowtimeController {
     @GetMapping("/filter-index") public ShowtimeFilterIndexDto layChiSoLocPhim() { return dichVuSuatChieu.layChiSoLocPhim(); }
     @GetMapping("/{id}/seats") public ShowtimeSeatMapDto laySoDoGheSuatChieu(@PathVariable String id) { return dichVuSuatChieu.laySoDoGheSuatChieu(id); }
     @PostMapping("/{id}/hold-seats") public HoldSeatsResponse giuGheTamThoi(@PathVariable String id, @RequestBody HoldSeatsRequest yeuCau, @RequestParam String maNguoiDung) { yeuCau.setMaSuatChieu(id); return dichVuDatVe.giuGheTamThoi(yeuCau, maNguoiDung); }
+    @PostMapping("/{id}/release-seats") @PreAuthorize("isAuthenticated()")
+    public void boGiuGhe(@PathVariable String id, @RequestBody HoldSeatsRequest yeuCau, org.springframework.security.core.Authentication xacThuc) {
+        var nguoiDung = khoNguoiDung.findByEmail(xacThuc.getName()).orElseThrow(() ->
+                new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Chưa đăng nhập"));
+        yeuCau.setMaSuatChieu(id);
+        dichVuDatVe.boGiuGhe(yeuCau, nguoiDung.getId());
+    }
     @PostMapping("/admin") @PreAuthorize("hasRole('ADMIN')") public Showtime taoSuatChieuMoi(@RequestBody ShowtimeDto dto) { return dichVuSuatChieu.taoSuatChieuMoi(dto); }
     @PutMapping("/admin/{id}") @PreAuthorize("hasRole('ADMIN')") public Showtime capNhatSuatChieu(@PathVariable String id, @RequestBody ShowtimeDto dto) { return dichVuSuatChieu.capNhatSuatChieu(id, dto); }
     @DeleteMapping("/admin/{id}") @PreAuthorize("hasRole('ADMIN')") public void xoaSuatChieu(@PathVariable String id) { dichVuSuatChieu.xoaSuatChieu(id); }
