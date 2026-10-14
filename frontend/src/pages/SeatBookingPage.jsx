@@ -10,6 +10,12 @@ import { chuanHoaGheDatVe, layCapGheDoi } from '../utils/soDoGhe'
 import { lamTronNghin, tinhGiaGhe } from '../utils/tinhGiaVe'
 import useThoiGianGiuGhe, { docPhienGiuGhe } from '../hooks/useThoiGianGiuGhe'
 
+const gheKhoiPhuc = (id, maNguoiDung, trangThai) => {
+  const phien = docPhienGiuGhe(id, maNguoiDung)
+  if (phien) return phien.gheChon
+  return trangThai?.thoiGianHetHanMs > Date.now() && Array.isArray(trangThai.gheChon) ? trangThai.gheChon : []
+}
+
 export default function SeatBookingPage() {
   const { id } = useParams()
   const { nguoiDung } = useAuth()
@@ -17,26 +23,43 @@ export default function SeatBookingPage() {
   const viTri = useLocation()
   const [danhSachGhe, datDanhSachGhe] = useState([])
   const [giaVeTu, datGiaVeTu] = useState(0)
-  const [gheChon, datGheChon] = useState(() => viTri.state?.gheChon || docPhienGiuGhe(id, nguoiDung?.id)?.gheChon || [])
-  const { giayConLai, thoiGianHetHanMs, luuThoiGianGiuGhe } = useThoiGianGiuGhe(id, nguoiDung?.id, viTri.state)
+  const [gheChon, datGheChon] = useState([])
+  const { giayConLai, thoiGianHetHanMs, luuThoiGianGiuGhe, xoaPhienGiuGhe } = useThoiGianGiuGhe(id, nguoiDung?.id, viTri.state)
   const [dangXuLy, datDangXuLy] = useState(false)
-  const [gheDaGiu, datGheDaGiu] = useState(() => docPhienGiuGhe(id, nguoiDung?.id)?.gheChon || (viTri.state?.thoiGianHetHanMs ? viTri.state?.gheChon : []) || [])
+  const [gheDaGiu, datGheDaGiu] = useState([])
   const daGiuGheChon = giayConLai > 0 && gheChon.length === gheDaGiu.length && gheChon.every(so => gheDaGiu.includes(so))
 
   useEffect(() => {
-    const phien = docPhienGiuGhe(id, nguoiDung?.id)
-    datGheChon(viTri.state?.gheChon || phien?.gheChon || [])
-    datGheDaGiu(phien?.gheChon || (viTri.state?.thoiGianHetHanMs ? viTri.state?.gheChon : []) || [])
+    let huy = false
+    datGheChon([])
+    datGheDaGiu([])
+    datDanhSachGhe([])
     laySoDoGhe(id).then(({ giaVeTu: gia, danhSachGhe: danhSach }) => {
+      if (huy) return
+      const ghe = danhSach.map((ghe) => chuanHoaGheDatVe(ghe, gia))
+      const khoiPhuc = gheKhoiPhuc(id, nguoiDung?.id, viTri.state)
+      const hopLe = khoiPhuc.filter((so) => ghe.some((g) => g.soGhe === so && (g.trangThai === 'AVAILABLE'
+        || (g.trangThai === 'HELD' && (g.heldBy || g.nguoiGiuGhe) === nguoiDung?.id))))
+      // A hold belongs to the entire selection; do not resume a partly booked session.
+      if (hopLe.length !== khoiPhuc.length) xoaPhienGiuGhe()
+      else {
+        datGheChon(hopLe)
+        datGheDaGiu(hopLe)
+      }
       datGiaVeTu(gia || 0)
-      datDanhSachGhe(danhSach.map((ghe) => chuanHoaGheDatVe(ghe, gia)))
+      datDanhSachGhe(ghe)
     }).catch(() => {
+      if (huy) return
       datGiaVeTu(0)
       datDanhSachGhe([])
     })
-  }, [id])
+    return () => { huy = true }
+  }, [id, nguoiDung?.id, viTri.key])
   useEffect(() => {
     if (!thoiGianHetHanMs || giayConLai > 0) return
+    datGheChon([])
+    datGheDaGiu([])
+    xoaPhienGiuGhe()
     laySoDoGhe(id).then(({ giaVeTu: gia, danhSachGhe: danhSach }) => {
       datGiaVeTu(gia || 0)
       datDanhSachGhe(danhSach.map(ghe => chuanHoaGheDatVe(ghe, gia)))

@@ -55,6 +55,8 @@ test('one deadline survives food, payment, back navigation and reload, then expi
   await page.getByRole('button', { name: 'Chọn bắp nước →' }).click()
   await page.clock.fastForward(201000)
   await expect(page).toHaveURL('http://localhost:5173/booking/timer-show')
+  await expect(page.locator('aside')).toContainText('Chưa chọn ghế')
+  await expect(page.getByRole('button', { name: 'Giữ ghế 5 phút' })).toBeDisabled()
   expect(holdRequests).toBe(1)
   expect(errors).toEqual([])
 })
